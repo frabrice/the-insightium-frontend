@@ -68,25 +68,6 @@ export default function AdminLogin({ isDarkMode }: AdminLoginProps) {
             </p>
           </div>
 
-          {/* Demo Credentials */}
-          <div className={`${isDarkMode ? 'bg-blue-900/20 border-blue-700' : 'bg-blue-50 border-blue-200'} rounded-lg border p-3 mb-6`}>
-            <div className="flex items-start space-x-2">
-              <AlertCircle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-              <div>
-                <h3 className={`text-xs font-medium ${isDarkMode ? 'text-blue-300' : 'text-blue-900'} mb-1`}>
-                  Demo Credentials
-                </h3>
-                <div className={`text-xs space-y-1 ${isDarkMode ? 'text-blue-400' : 'text-blue-700'}`}>
-                  <div>
-                    <strong>Admin:</strong> admin@theinsightium.com / admin123
-                  </div>
-                  <div>
-                    <strong>Editor:</strong> editor@theinsightium.com / editor123
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
 
           {/* Error Message */}
           {error && (
@@ -162,13 +143,13 @@ export default function AdminLogin({ isDarkMode }: AdminLoginProps) {
                   Remember me
                 </span>
               </label>
-              <button
-                type="button"
+              <Link
+                to="/admin/forgot-password"
                 className="text-sm text-red-600 hover:text-red-700 font-medium transition-colors"
                 style={{ color: '#F21717' }}
               >
                 Forgot password?
-              </button>
+              </Link>
             </div>
 
             {/* Submit Button */}

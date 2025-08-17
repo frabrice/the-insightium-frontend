@@ -40,10 +40,10 @@ export default function TVShowForm({ isDarkMode, onClose, onSave, initialData, m
     youtubeUrl: initialData?.youtube_url || '',
     tags: initialData?.tags || '',
     metaDescription: initialData?.meta_description || '',
-    status: initialData?.status || 'draft',
+    status: initialData?.status || 'published',
     featured: initialData?.featured || false,
     isNew: initialData?.is_new || false,
-    rating: initialData?.rating || 4.5,
+    rating: initialData?.rating || 0,
     uploadDate: initialData?.upload_date ? new Date(initialData.upload_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
   });
 
@@ -512,7 +512,6 @@ export default function TVShowForm({ isDarkMode, onClose, onSave, initialData, m
                           : 'bg-white border-gray-300 text-gray-900'
                       }`}
                     >
-                      <option value="draft">Draft</option>
                       <option value="published">Published</option>
                     </select>
                   </div>
@@ -563,24 +562,14 @@ export default function TVShowForm({ isDarkMode, onClose, onSave, initialData, m
             </span>
           </div>
           
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => handleSave('draft')}
-              className={`px-4 py-2 border rounded-lg text-xs font-medium transition-colors ${
-                isDarkMode 
-                  ? 'border-gray-600 text-gray-300 hover:bg-gray-700' 
-                  : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              Save as Draft
-            </button>
+          <div className="flex items-center justify-end">
             <button
               onClick={() => handleSave('published')}
               className="px-4 py-2 bg-red-600 text-white rounded-lg text-xs font-medium hover:bg-red-700 transition-colors flex items-center space-x-1"
               style={{ backgroundColor: '#F21717' }}
             >
               <Save className="w-3 h-3" />
-              <span>Publish Episode</span>
+              <span>Save Episode</span>
             </button>
           </div>
         </div>

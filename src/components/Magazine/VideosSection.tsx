@@ -1,43 +1,20 @@
 import React from 'react';
 import { Play } from 'lucide-react';
-import { useData } from '../../contexts/DataContext';
+import { useNavigate } from 'react-router-dom';
+import { usePublicData } from '../../contexts/PublicDataContext';
 
 interface VideosSectionProps {
   isDarkMode: boolean;
 }
 
 export default function VideosSection({ isDarkMode }: VideosSectionProps) {
-  const { magazineVideos } = useData();
+  const { magazineVideos } = usePublicData();
+  const navigate = useNavigate();
 
-  // Fallback data if no videos are set
-  const defaultVideos = [
-    {
-      title: "The Future of Education in Africa",
-      description: "A comprehensive look at educational transformation across the continent",
-      thumbnail: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80",
-      watchUrl: "#"
-    },
-    {
-      title: "Digital Learning Revolution",
-      description: "How technology is reshaping classrooms worldwide",
-      thumbnail: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80",
-      watchUrl: "#"
-    },
-    {
-      title: "Women in STEM Education",
-      description: "Inspiring stories of female leaders in science and technology education",
-      thumbnail: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80",
-      watchUrl: "#"
-    },
-    {
-      title: "Innovation in Rural Schools",
-      description: "Creative solutions for educational challenges in remote areas",
-      thumbnail: "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80",
-      watchUrl: "#"
-    }
-  ];
-
-  const displayVideos = magazineVideos.length > 0 ? magazineVideos : defaultVideos;
+  // Only show if we have real videos
+  if (magazineVideos.length === 0) {
+    return null; // Hide the entire section if no videos
+  }
 
   return (
     <section className="py-4 sm:py-6 lg:py-8 bg-black transition-colors">
@@ -49,10 +26,14 @@ export default function VideosSection({ isDarkMode }: VideosSectionProps) {
 
         {/* Videos Grid - Responsive */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          {displayVideos.slice(0, 4).map((video, index) => (
+          {magazineVideos.slice(0, 4).map((video, index) => (
             <div 
               key={index}
               className="group cursor-pointer bg-gray-900 border-gray-700 rounded-xl sm:rounded-2xl overflow-hidden shadow-lg border hover:shadow-xl transition-all duration-300"
+              onClick={() => {
+                navigate(`/video/${video._id || video.id}`);
+                window.scrollTo(0, 0);
+              }}
             >
               {/* Video Thumbnail */}
               <div className="relative overflow-hidden">
@@ -98,10 +79,10 @@ export default function VideosSection({ isDarkMode }: VideosSectionProps) {
                 </p>
                 
                 {/* Watch Now Button */}
-                <button className="text-blue-600 hover:text-blue-700 transition-colors flex items-center space-x-2 font-medium text-sm">
+                <div className="text-blue-600 hover:text-blue-700 transition-colors flex items-center space-x-2 font-medium text-sm">
                   <Play className="w-4 h-4" />
                   <span>Watch Now</span>
-                </button>
+                </div>
               </div>
             </div>
           ))}

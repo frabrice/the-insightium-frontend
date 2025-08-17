@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import PodcastForm from './PodcastForm';
+import { podcastsApi } from '../../../api/podcasts';
+import { useToast } from '../../../contexts/ToastContext';
 import { 
   Plus, 
   Search, 
@@ -22,13 +25,14 @@ import {
   BarChart3,
   Headphones
 } from 'lucide-react';
-import { useData } from '../../../contexts/DataContext';
 
 interface PodcastManagementProps {
   isDarkMode: boolean;
 }
 
 export default function PodcastManagement({ isDarkMode }: PodcastManagementProps) {
+  const navigate = useNavigate();
+  const { showSuccess, showError } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedSeries, setSelectedSeries] = useState('all');
@@ -37,92 +41,58 @@ export default function PodcastManagement({ isDarkMode }: PodcastManagementProps
   const [episodes, setEpisodes] = useState<any[]>([]);
   const [guests, setGuests] = useState<any[]>([]);
   const [series, setSeries] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [saveMessage, setSaveMessage] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [deletingEpisode, setDeletingEpisode] = useState<any>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  // Fetch episodes, guests, and series
-  React.useEffect(() => {
-    // Use dummy data instead of database calls
-    setEpisodes(defaultEpisodes);
-    setGuests([
-      { id: '1', full_name: 'Dr. Kwame Asante', title: 'AI in Education Researcher', organization: 'University of Ghana' },
-      { id: '2', full_name: 'Prof. Amina Hassan', title: 'Inclusive Education Specialist', organization: 'Cairo University' }
-    ]);
-    setSeries([
-      { id: '1', title: 'Library Talk: Education Leaders' },
-      { id: '2', title: 'Library Talk: Student Voices' }
-    ]);
-    setIsLoading(false);
-  }, []);
+  useEffect(() => {
+    loadPodcasts();
+  }, [currentPage, selectedStatus]);
 
-  const defaultEpisodes = [
-    {
-      id: '1',
-      title: 'The Future of Learning: AI in Education',
-      guest: 'Dr. Kwame Asante',
-      duration: '58 min',
-      plays: '12.5K',
-      downloads: '5.2K',
-      publishDate: '2024-03-15',
-      status: 'published',
-      description: 'Join us for an in-depth conversation with leading AI researchers and educators as we explore how artificial intelligence is reshaping the educational landscape.',
-      image: 'https://images.unsplash.com/photo-1589903308904-1010c2294adc?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
-      rating: 4.8
-    },
-    {
-      id: '2',
-      title: 'Building Inclusive Learning Environments',
-      guest: 'Prof. Amina Hassan',
-      duration: '45 min',
-      plays: '8.2K',
-      downloads: '3.7K',
-      publishDate: '2024-03-08',
-      status: 'published',
-      description: 'Exploring strategies for creating educational spaces that welcome and support all learners.',
-      image: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
-      rating: 4.6
-    },
-    {
-      id: '3',
-      title: 'The Power of Storytelling in Education',
-      guest: 'Marcus Johnson',
-      duration: '52 min',
-      plays: '9.7K',
-      downloads: '4.3K',
-      publishDate: '2024-03-01',
-      status: 'published',
-      description: 'How narrative techniques can transform the way we teach and learn complex subjects.',
-      image: 'https://images.unsplash.com/photo-1501504905252-473c47e087f8?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
-      rating: 4.9
-    },
-    {
-      id: '4',
-      title: 'Mental Health in Academic Settings',
-      guest: 'Dr. Sarah Ochieng',
-      duration: '41 min',
-      plays: '6.8K',
-      downloads: '2.9K',
-      publishDate: '2024-02-25',
-      status: 'draft',
-      description: 'Addressing mental health challenges and support systems in educational institutions.',
-      image: 'https://images.unsplash.com/photo-1434030216411-0b793f4b4173?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80',
-      rating: 4.7
+  const loadPodcasts = async () => {
+    try {
+      setLoading(true);
+      const response = await podcastsApi.getPodcasts({
+        page: currentPage,
+        limit: 10,
+        ...(selectedStatus !== 'all' && { status: selectedStatus })
+      });
+      
+      if (response.success) {
+        setEpisodes(response.data || []);
+        setTotalPages(response.pagination?.totalPages || 1);
+      } else {
+        setEpisodes([]);
+        setTotalPages(1);
+      }
+      
+      // Set dummy data for guests and series
+      setGuests([
+        { id: '1', full_name: 'Dr. Kwame Asante', title: 'AI in Education Researcher', organization: 'University of Ghana' },
+        { id: '2', full_name: 'Prof. Amina Hassan', title: 'Inclusive Education Specialist', organization: 'Cairo University' }
+      ]);
+      setSeries([
+        { id: '1', title: 'Library Talk: Education Leaders' },
+        { id: '2', title: 'Library Talk: Student Voices' }
+      ]);
+    } catch (error) {
+      console.error('Error loading podcasts:', error);
+      showError('Error loading podcasts');
+      setEpisodes([]);
+      setTotalPages(1);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
-  const displayEpisodes = episodes.length > 0 ? episodes : defaultEpisodes;
-
-  // Filter episodes
-  const filteredEpisodes = displayEpisodes.filter(episode => {
-    const matchesSearch = !searchQuery || 
-      episode.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (episode.guest_profiles?.full_name || episode.guest || '').toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesStatus = selectedStatus === 'all' || episode.status === selectedStatus;
-    const matchesSeries = selectedSeries === 'all' || 
-      (episode.podcast_series && episode.podcast_series.title === selectedSeries);
-    
-    return matchesSearch && matchesStatus && matchesSeries;
+  // Filter episodes by search query
+  const filteredEpisodes = episodes.filter(episode => {
+    if (!searchQuery) return true;
+    return episode.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           episode.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           (episode.guest_name || '').toLowerCase().includes(searchQuery.toLowerCase());
   });
 
   const handleNewEpisode = () => {
@@ -136,16 +106,55 @@ export default function PodcastManagement({ isDarkMode }: PodcastManagementProps
   };
 
   const handleSaveEpisode = async (episodeData: any) => {
-      console.log('Episode saved successfully:', episodeData);
-      setSaveMessage('Podcast episode saved successfully!');
+    try {
+      if (editingEpisode) {
+        await podcastsApi.updatePodcast(editingEpisode._id || editingEpisode.id, episodeData);
+        showSuccess('Podcast episode updated successfully!');
+      } else {
+        await podcastsApi.createPodcast(episodeData);
+        showSuccess('Podcast episode created successfully!');
+      }
       
-      // Simulate refresh
-      setTimeout(() => {
-        setSaveMessage('');
-      }, 1000);
-      
-    setShowEpisodeForm(false);
-    setEditingEpisode(null);
+      await loadPodcasts();
+      setShowEpisodeForm(false);
+      setEditingEpisode(null);
+    } catch (error: any) {
+      console.error('Error saving podcast episode:', error);
+      if (editingEpisode) {
+        showError('Error updating podcast episode');
+      } else {
+        showError('Error creating podcast episode');
+      }
+    }
+  };
+
+  const handleDeleteClick = (episode: any) => {
+    setDeletingEpisode(episode);
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingEpisode) return;
+    
+    setLoading(true);
+    
+    try {
+      await podcastsApi.deletePodcast(deletingEpisode._id || deletingEpisode.id);
+      showSuccess('Podcast episode deleted successfully!');
+      await loadPodcasts();
+    } catch (error: any) {
+      console.error('Error deleting podcast episode:', error);
+      showError('Error deleting podcast episode');
+    } finally {
+      setLoading(false);
+      setShowDeleteModal(false);
+      setDeletingEpisode(null);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setShowDeleteModal(false);
+    setDeletingEpisode(null);
   };
 
   const getStatusIcon = (status: string) => {
@@ -187,13 +196,6 @@ export default function PodcastManagement({ isDarkMode }: PodcastManagementProps
         </button>
       </div>
 
-      {/* Save Message */}
-      {saveMessage && (
-        <div className={`${saveMessage.includes('Error') ? 'bg-red-50 border-red-200 text-red-700' : 'bg-green-50 border-green-200 text-green-700'} rounded-lg border p-3`}>
-          <p className="text-sm">{saveMessage}</p>
-        </div>
-      )}
-
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
         <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border p-3`}>
@@ -203,7 +205,7 @@ export default function PodcastManagement({ isDarkMode }: PodcastManagementProps
                 Total Episodes
               </p>
               <p className={`text-lg font-bold mt-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                {displayEpisodes.length}
+                {episodes.length}
               </p>
             </div>
             <div className="bg-green-100 text-green-600 dark:bg-green-900/20 dark:text-green-400 p-2 rounded-lg">
@@ -219,7 +221,11 @@ export default function PodcastManagement({ isDarkMode }: PodcastManagementProps
                 Total Plays
               </p>
               <p className={`text-lg font-bold mt-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                37.2K
+                {episodes.reduce((total, episode) => {
+                  const playsStr = episode.plays?.toString() || '0';
+                  const plays = parseInt(playsStr.replace(/[K,]/g, '')) || 0;
+                  return total + (playsStr.includes('K') ? plays * 1000 : plays);
+                }, 0).toLocaleString()}
               </p>
             </div>
             <div className="bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 p-2 rounded-lg">
@@ -235,7 +241,11 @@ export default function PodcastManagement({ isDarkMode }: PodcastManagementProps
                 Downloads
               </p>
               <p className={`text-lg font-bold mt-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                16.1K
+                {episodes.reduce((total, episode) => {
+                  const downloadsStr = episode.downloads?.toString() || '0';
+                  const downloads = parseInt(downloadsStr.replace(/[K,]/g, '')) || 0;
+                  return total + (downloadsStr.includes('K') ? downloads * 1000 : downloads);
+                }, 0).toLocaleString()}
               </p>
             </div>
             <div className="bg-purple-100 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400 p-2 rounded-lg">
@@ -251,7 +261,9 @@ export default function PodcastManagement({ isDarkMode }: PodcastManagementProps
                 Avg Rating
               </p>
               <p className={`text-lg font-bold mt-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                4.8
+                {episodes.length > 0 ? (
+                  (episodes.reduce((total, episode) => total + (episode.rating || 0), 0) / episodes.length).toFixed(1)
+                ) : '0.0'}
               </p>
             </div>
             <div className="bg-yellow-100 text-yellow-600 dark:bg-yellow-900/20 dark:text-yellow-400 p-2 rounded-lg">
@@ -290,8 +302,6 @@ export default function PodcastManagement({ isDarkMode }: PodcastManagementProps
           >
             <option value="all">All Status</option>
             <option value="published">Published</option>
-            <option value="draft">Draft</option>
-            <option value="scheduled">Scheduled</option>
           </select>
 
           <select
@@ -311,17 +321,24 @@ export default function PodcastManagement({ isDarkMode }: PodcastManagementProps
         </div>
       </div>
 
-      {/* Episodes List */}
-      {isLoading ? (
-        <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto mb-4"></div>
-          <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Loading episodes...</p>
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+          <span className={`ml-3 text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+            Loading podcast episodes...
+          </span>
         </div>
-      ) : (
+      )}
+
+      {/* Episodes List */}
+      {!loading && (
         <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border overflow-hidden`}>
         <div className="divide-y divide-gray-200 dark:divide-gray-700">
-          {filteredEpisodes.map((episode) => (
-            <div key={episode.id} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors">
+          {filteredEpisodes.map((episode) => {
+            const episodeId = episode._id || episode.id;
+            return (
+            <div key={episodeId} className="p-4 hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors cursor-pointer" onClick={() => navigate(`/admin/podcast/${episodeId}`)}>
               <div className="flex items-start space-x-4">
                 {/* Episode Image */}
                 <div className="flex-shrink-0 relative">
@@ -350,7 +367,7 @@ export default function PodcastManagement({ isDarkMode }: PodcastManagementProps
                         <div className="flex items-center space-x-1">
                           <User className="w-3 h-3 text-gray-400" />
                           <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                            with {episode.guest_profiles?.full_name || episode.guest}
+                            with {episode.guest_name || episode.guest || 'Guest'}
                           </span>
                         </div>
                         {episode.podcast_series && (
@@ -392,7 +409,7 @@ export default function PodcastManagement({ isDarkMode }: PodcastManagementProps
                       </div>
                       <div className="text-right">
                         <p className={`text-xs font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                          {new Date(episode.publishDate).toLocaleDateString()}
+                          {new Date(episode.publish_date || episode.createdAt).toLocaleDateString()}
                         </p>
                         <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
                           published
@@ -409,17 +426,23 @@ export default function PodcastManagement({ isDarkMode }: PodcastManagementProps
 
                       {/* Actions */}
                       <div className="flex items-center space-x-1">
-                        <button className={`p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                          <Eye className="w-3 h-3" />
-                        </button>
                         <button 
-                          onClick={() => handleEditEpisode(episode)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEditEpisode(episode);
+                          }}
                           className={`p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}
                         >
                           <Edit className="w-3 h-3" />
                         </button>
-                        <button className={`p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                          <MoreHorizontal className="w-3 h-3" />
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteClick(episode);
+                          }}
+                          className={`p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/20 text-red-500`}
+                        >
+                          <Trash2 className="w-3 h-3" />
                         </button>
                       </div>
                     </div>
@@ -427,7 +450,8 @@ export default function PodcastManagement({ isDarkMode }: PodcastManagementProps
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
       )}
@@ -446,6 +470,84 @@ export default function PodcastManagement({ isDarkMode }: PodcastManagementProps
           guests={guests}
           series={series}
         />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && deletingEpisode && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-xl border shadow-2xl w-full max-w-md`}>
+            {/* Header */}
+            <div className={`flex items-center justify-between p-4 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-red-100 dark:bg-red-900/20 rounded-lg">
+                  <Trash2 className="w-5 h-5 text-red-600 dark:text-red-400" />
+                </div>
+                <div>
+                  <h2 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    Delete Episode
+                  </h2>
+                  <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    This action cannot be undone
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-4">
+              <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} mb-4`}>
+                Are you sure you want to delete "<span className="font-medium">{deletingEpisode.title}</span>"? 
+                This will permanently remove the podcast episode and all its data.
+              </p>
+              
+              <div className={`${isDarkMode ? 'bg-red-900/20 border-red-700' : 'bg-red-50 border-red-200'} rounded-lg border p-3`}>
+                <div className="flex items-start space-x-2">
+                  <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className={`text-xs font-medium ${isDarkMode ? 'text-red-300' : 'text-red-800'}`}>
+                      Warning
+                    </p>
+                    <p className={`text-xs ${isDarkMode ? 'text-red-400' : 'text-red-700'}`}>
+                      This action is permanent and cannot be undone.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className={`flex items-center justify-end space-x-3 p-4 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+              <button
+                onClick={handleDeleteCancel}
+                className={`px-4 py-2 border rounded-lg text-sm font-medium transition-colors ${
+                  isDarkMode 
+                    ? 'border-gray-600 text-gray-300 hover:bg-gray-700' 
+                    : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}
+                disabled={loading}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={loading}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors flex items-center space-x-2 disabled:opacity-50"
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3 h-3" />
+                    <span>Delete Episode</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

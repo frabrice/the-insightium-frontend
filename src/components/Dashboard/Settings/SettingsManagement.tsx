@@ -1,556 +1,538 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  Settings, 
-  Save, 
-  RefreshCw,
-  Globe,
+  Lock, 
+  Eye, 
+  EyeOff,
+  Save,
+  CheckCircle,
+  AlertCircle,
+  Shield,
+  Key,
+  User,
   Mail,
   Phone,
-  MapPin,
-  Facebook,
-  Twitter,
-  Instagram,
-  Linkedin,
-  Youtube,
-  Bell,
-  Shield,
-  Database,
-  Palette,
-  Monitor,
-  Users,
-  Lock,
-  Key,
-  AlertTriangle,
-  CheckCircle,
-  Info
+  FileText
 } from 'lucide-react';
+import { useAuth } from '../../../contexts/AuthContext';
+import { authApi } from '../../../api/auth';
 
 interface SettingsManagementProps {
   isDarkMode: boolean;
 }
 
 export default function SettingsManagement({ isDarkMode }: SettingsManagementProps) {
-  const [activeTab, setActiveTab] = useState('general');
-  const [saveStatus, setSaveStatus] = useState('');
-
-  const tabs = [
-    { id: 'general', label: 'General', icon: Settings },
-    { id: 'contact', label: 'Contact', icon: Mail },
-    { id: 'social', label: 'Social Media', icon: Globe },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
-    { id: 'security', label: 'Security', icon: Shield },
-    { id: 'advanced', label: 'Advanced', icon: Database }
-  ];
-
-  const [settings, setSettings] = useState({
-    // General Settings
-    siteName: 'The Insightium',
-    siteDescription: 'Empowering education through innovative content',
-    siteUrl: 'https://theinsightium.com',
-    timezone: 'Africa/Nairobi',
-    language: 'en',
-    articlesPerPage: 10,
-    enableComments: true,
-    enableNewsletter: true,
-    maintenanceMode: false,
-
-    // Contact Settings
-    contactEmail: 'admin@theinsightium.com',
-    contactPhone: '+250 780 849 228',
-    contactAddress: 'Kigali, Rwanda',
-    officeHours: 'Monday - Friday: 8:00 AM - 6:00 PM (EAT)',
-
-    // Social Media
-    facebookUrl: '',
-    twitterUrl: '',
-    instagramUrl: '',
-    linkedinUrl: '',
-    youtubeUrl: '',
-
-    // Notifications
-    emailNotifications: true,
-    newArticleNotifications: true,
-    commentNotifications: true,
-    newsletterNotifications: true,
-
-    // Security
-    twoFactorAuth: false,
-    sessionTimeout: 30,
-    passwordExpiry: 90,
-    loginAttempts: 5,
-
-    // Advanced
-    cacheEnabled: true,
-    compressionEnabled: true,
-    analyticsEnabled: true,
-    backupFrequency: 'daily'
+  const { user, refreshUser } = useAuth();
+  
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
   });
+  
+  const [profileData, setProfileData] = useState({
+    name: '',
+    email: '',
+    bio: '',
+    phone: ''
+  });
+  
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    new: false,
+    confirm: false
+  });
+  
+  const [isLoading, setIsLoading] = useState({
+    password: false,
+    profile: false
+  });
+  
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [successMessages, setSuccessMessages] = useState<Record<string, string>>({});
 
-  const handleSettingChange = (key: string, value: any) => {
-    setSettings(prev => ({
+  // Initialize profile data when user changes
+  useEffect(() => {
+    if (user) {
+      setProfileData({
+        name: user.name || '',
+        email: user.email || '',
+        bio: user.profile?.bio || '',
+        phone: user.profile?.phone || ''
+      });
+    }
+  }, [user]);
+
+  const handlePasswordChange = (field: string, value: string) => {
+    setPasswordData(prev => ({
       ...prev,
-      [key]: value
+      [field]: value
+    }));
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors(prev => ({
+        ...prev,
+        [field]: ''
+      }));
+    }
+  };
+
+  const handleProfileChange = (field: string, value: string) => {
+    setProfileData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors(prev => ({
+        ...prev,
+        [field]: ''
+      }));
+    }
+  };
+
+  const togglePasswordVisibility = (field: string) => {
+    setShowPasswords(prev => ({
+      ...prev,
+      [field]: !prev[field as keyof typeof prev]
     }));
   };
 
-  const handleSave = () => {
-    setSaveStatus('Saving...');
-    // Simulate save operation
-    setTimeout(() => {
-      setSaveStatus('Settings saved successfully!');
-      setTimeout(() => setSaveStatus(''), 3000);
-    }, 1000);
+  const validatePassword = () => {
+    const newErrors: Record<string, string> = {};
+
+    if (!passwordData.currentPassword) {
+      newErrors.currentPassword = 'Current password is required';
+    }
+
+    if (!passwordData.newPassword) {
+      newErrors.newPassword = 'New password is required';
+    } else if (passwordData.newPassword.length < 6) {
+      newErrors.newPassword = 'New password must be at least 6 characters';
+    }
+
+    if (!passwordData.confirmPassword) {
+      newErrors.confirmPassword = 'Please confirm your new password';
+    } else if (passwordData.newPassword !== passwordData.confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
-  const renderGeneralSettings = () => (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className={`block text-xs font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-            Site Name
-          </label>
-          <input
-            type="text"
-            value={settings.siteName}
-            onChange={(e) => handleSettingChange('siteName', e.target.value)}
-            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs ${
-              isDarkMode 
-                ? 'bg-gray-900 border-gray-600 text-white' 
-                : 'bg-white border-gray-300 text-gray-900'
-            }`}
-          />
-        </div>
-        <div>
-          <label className={`block text-xs font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-            Site URL
-          </label>
-          <input
-            type="url"
-            value={settings.siteUrl}
-            onChange={(e) => handleSettingChange('siteUrl', e.target.value)}
-            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs ${
-              isDarkMode 
-                ? 'bg-gray-900 border-gray-600 text-white' 
-                : 'bg-white border-gray-300 text-gray-900'
-            }`}
-          />
-        </div>
-      </div>
+  const validateProfile = () => {
+    const newErrors: Record<string, string> = {};
 
-      <div>
-        <label className={`block text-xs font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-          Site Description
-        </label>
-        <textarea
-          value={settings.siteDescription}
-          onChange={(e) => handleSettingChange('siteDescription', e.target.value)}
-          rows={3}
-          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs resize-none ${
-            isDarkMode 
-              ? 'bg-gray-900 border-gray-600 text-white' 
-              : 'bg-white border-gray-300 text-gray-900'
-          }`}
-        />
-      </div>
+    if (!profileData.name.trim()) {
+      newErrors.name = 'Name is required';
+    }
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <label className={`block text-xs font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-            Timezone
-          </label>
-          <select
-            value={settings.timezone}
-            onChange={(e) => handleSettingChange('timezone', e.target.value)}
-            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs ${
-              isDarkMode 
-                ? 'bg-gray-900 border-gray-600 text-white' 
-                : 'bg-white border-gray-300 text-gray-900'
-            }`}
-          >
-            <option value="Africa/Nairobi">Africa/Nairobi</option>
-            <option value="Africa/Kigali">Africa/Kigali</option>
-            <option value="Africa/Kampala">Africa/Kampala</option>
-          </select>
-        </div>
-        <div>
-          <label className={`block text-xs font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-            Language
-          </label>
-          <select
-            value={settings.language}
-            onChange={(e) => handleSettingChange('language', e.target.value)}
-            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs ${
-              isDarkMode 
-                ? 'bg-gray-900 border-gray-600 text-white' 
-                : 'bg-white border-gray-300 text-gray-900'
-            }`}
-          >
-            <option value="en">English</option>
-            <option value="sw">Swahili</option>
-            <option value="rw">Kinyarwanda</option>
-          </select>
-        </div>
-        <div>
-          <label className={`block text-xs font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-            Articles Per Page
-          </label>
-          <input
-            type="number"
-            value={settings.articlesPerPage}
-            onChange={(e) => handleSettingChange('articlesPerPage', parseInt(e.target.value))}
-            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs ${
-              isDarkMode 
-                ? 'bg-gray-900 border-gray-600 text-white' 
-                : 'bg-white border-gray-300 text-gray-900'
-            }`}
-          />
-        </div>
-      </div>
+    if (!profileData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profileData.email)) {
+      newErrors.email = 'Please enter a valid email address';
+    }
 
-      <div className="space-y-3">
-        <label className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            checked={settings.enableComments}
-            onChange={(e) => handleSettingChange('enableComments', e.target.checked)}
-            className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-          />
-          <span className={`text-xs ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-            Enable Comments on Articles
-          </span>
-        </label>
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
-        <label className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            checked={settings.enableNewsletter}
-            onChange={(e) => handleSettingChange('enableNewsletter', e.target.checked)}
-            className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-          />
-          <span className={`text-xs ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-            Enable Newsletter Signup
-          </span>
-        </label>
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validatePassword()) return;
 
-        <label className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            checked={settings.maintenanceMode}
-            onChange={(e) => handleSettingChange('maintenanceMode', e.target.checked)}
-            className="w-4 h-4 text-red-600 rounded focus:ring-red-500"
-          />
-          <span className={`text-xs ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-            Maintenance Mode
-          </span>
-        </label>
-      </div>
-    </div>
-  );
+    setIsLoading(prev => ({ ...prev, password: true }));
+    setErrors({});
+    setSuccessMessages(prev => ({ ...prev, password: '' }));
 
-  const renderContactSettings = () => (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className={`block text-xs font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-            Contact Email
-          </label>
-          <input
-            type="email"
-            value={settings.contactEmail}
-            onChange={(e) => handleSettingChange('contactEmail', e.target.value)}
-            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs ${
-              isDarkMode 
-                ? 'bg-gray-900 border-gray-600 text-white' 
-                : 'bg-white border-gray-300 text-gray-900'
-            }`}
-          />
-        </div>
-        <div>
-          <label className={`block text-xs font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-            Contact Phone
-          </label>
-          <input
-            type="tel"
-            value={settings.contactPhone}
-            onChange={(e) => handleSettingChange('contactPhone', e.target.value)}
-            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs ${
-              isDarkMode 
-                ? 'bg-gray-900 border-gray-600 text-white' 
-                : 'bg-white border-gray-300 text-gray-900'
-            }`}
-          />
-        </div>
-      </div>
+    try {
+      const response = await authApi.changePassword(passwordData);
+      
+      if (response.success) {
+        setSuccessMessages(prev => ({ 
+          ...prev, 
+          password: 'Password updated successfully!' 
+        }));
+        setPasswordData({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        });
+        // Clear success message after 5 seconds
+        setTimeout(() => {
+          setSuccessMessages(prev => ({ ...prev, password: '' }));
+        }, 5000);
+      } else {
+        setErrors({ submit: response.message || 'Failed to update password' });
+      }
+    } catch (error: any) {
+      setErrors({ submit: error.message || 'An error occurred' });
+    } finally {
+      setIsLoading(prev => ({ ...prev, password: false }));
+    }
+  };
 
-      <div>
-        <label className={`block text-xs font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-          Office Address
-        </label>
-        <input
-          type="text"
-          value={settings.contactAddress}
-          onChange={(e) => handleSettingChange('contactAddress', e.target.value)}
-          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs ${
-            isDarkMode 
-              ? 'bg-gray-900 border-gray-600 text-white' 
-              : 'bg-white border-gray-300 text-gray-900'
-          }`}
-        />
-      </div>
+  const handleProfileSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateProfile()) return;
 
-      <div>
-        <label className={`block text-xs font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-          Office Hours
-        </label>
-        <input
-          type="text"
-          value={settings.officeHours}
-          onChange={(e) => handleSettingChange('officeHours', e.target.value)}
-          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs ${
-            isDarkMode 
-              ? 'bg-gray-900 border-gray-600 text-white' 
-              : 'bg-white border-gray-300 text-gray-900'
-          }`}
-        />
-      </div>
-    </div>
-  );
+    setIsLoading(prev => ({ ...prev, profile: true }));
+    setErrors({});
+    setSuccessMessages(prev => ({ ...prev, profile: '' }));
 
-  const renderSocialSettings = () => (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-4">
-        {[
-          { key: 'facebookUrl', label: 'Facebook URL', icon: Facebook, color: 'text-blue-600' },
-          { key: 'twitterUrl', label: 'Twitter URL', icon: Twitter, color: 'text-blue-400' },
-          { key: 'instagramUrl', label: 'Instagram URL', icon: Instagram, color: 'text-pink-600' },
-          { key: 'linkedinUrl', label: 'LinkedIn URL', icon: Linkedin, color: 'text-blue-700' },
-          { key: 'youtubeUrl', label: 'YouTube URL', icon: Youtube, color: 'text-red-600' }
-        ].map((social) => (
-          <div key={social.key}>
-            <label className={`block text-xs font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-              <div className="flex items-center space-x-2">
-                <social.icon className={`w-4 h-4 ${social.color}`} />
-                <span>{social.label}</span>
-              </div>
-            </label>
-            <input
-              type="url"
-              value={settings[social.key as keyof typeof settings] as string}
-              onChange={(e) => handleSettingChange(social.key, e.target.value)}
-              placeholder={`https://${social.key.replace('Url', '')}.com/theinsightium`}
-              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs ${
-                isDarkMode 
-                  ? 'bg-gray-900 border-gray-600 text-white' 
-                  : 'bg-white border-gray-300 text-gray-900'
-              }`}
-            />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+    try {
+      const response = await authApi.updateProfile(profileData);
+      
+      if (response.success) {
+        setSuccessMessages(prev => ({ 
+          ...prev, 
+          profile: 'Profile updated successfully!' 
+        }));
+        // Refresh user data
+        await refreshUser();
+        // Clear success message after 5 seconds
+        setTimeout(() => {
+          setSuccessMessages(prev => ({ ...prev, profile: '' }));
+        }, 5000);
+      } else {
+        setErrors({ submit: response.message || 'Failed to update profile' });
+      }
+    } catch (error: any) {
+      setErrors({ submit: error.message || 'An error occurred' });
+    } finally {
+      setIsLoading(prev => ({ ...prev, profile: false }));
+    }
+  };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-            Settings
-          </h1>
-          <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-            Configure your website settings and preferences
-          </p>
-        </div>
-        <button 
-          onClick={handleSave}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center space-x-1"
-        >
-          <Save className="w-3 h-3" />
-          <span>Save Changes</span>
-        </button>
+      <div>
+        <h1 className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+          Account Settings
+        </h1>
+        <p className={`mt-2 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+          Manage your account information and security settings
+        </p>
       </div>
 
-      {/* Save Status */}
-      {saveStatus && (
-        <div className={`${saveStatus.includes('success') ? 'bg-green-50 border-green-200 text-green-700' : 'bg-blue-50 border-blue-200 text-blue-700'} rounded-lg border p-3`}>
-          <div className="flex items-center space-x-2">
-            {saveStatus.includes('success') ? (
-              <CheckCircle className="w-4 h-4" />
-            ) : (
-              <Info className="w-4 h-4" />
-            )}
-            <span className="text-xs">{saveStatus}</span>
-          </div>
-        </div>
-      )}
-
-      {/* Tabs */}
-      <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border p-3`}>
-        <div className="flex flex-wrap gap-2">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                activeTab === tab.id
-                  ? 'bg-blue-600 text-white'
-                  : `${isDarkMode ? 'text-gray-400 hover:bg-gray-700 hover:text-white' : 'text-gray-600 hover:bg-gray-100'}`
-              }`}
-            >
-              <tab.icon className="w-3 h-3" />
-              <span>{tab.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Settings Content */}
-      <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border p-4`}>
-        {activeTab === 'general' && renderGeneralSettings()}
-        {activeTab === 'contact' && renderContactSettings()}
-        {activeTab === 'social' && renderSocialSettings()}
-        
-        {activeTab === 'notifications' && (
-          <div className="space-y-4">
-            <h3 className={`text-sm font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-              Notification Preferences
-            </h3>
-            <div className="space-y-3">
-              {[
-                { key: 'emailNotifications', label: 'Email Notifications' },
-                { key: 'newArticleNotifications', label: 'New Article Notifications' },
-                { key: 'commentNotifications', label: 'Comment Notifications' },
-                { key: 'newsletterNotifications', label: 'Newsletter Notifications' }
-              ].map((notification) => (
-                <label key={notification.key} className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={settings[notification.key as keyof typeof settings] as boolean}
-                    onChange={(e) => handleSettingChange(notification.key, e.target.checked)}
-                    className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                  />
-                  <span className={`text-xs ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                    {notification.label}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'security' && (
-          <div className="space-y-4">
-            <h3 className={`text-sm font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-              Security Settings
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className={`block text-xs font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Session Timeout (minutes)
-                </label>
-                <input
-                  type="number"
-                  value={settings.sessionTimeout}
-                  onChange={(e) => handleSettingChange('sessionTimeout', parseInt(e.target.value))}
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs ${
-                    isDarkMode 
-                      ? 'bg-gray-900 border-gray-600 text-white' 
-                      : 'bg-white border-gray-300 text-gray-900'
-                  }`}
-                />
-              </div>
-              <div>
-                <label className={`block text-xs font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Max Login Attempts
-                </label>
-                <input
-                  type="number"
-                  value={settings.loginAttempts}
-                  onChange={(e) => handleSettingChange('loginAttempts', parseInt(e.target.value))}
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs ${
-                    isDarkMode 
-                      ? 'bg-gray-900 border-gray-600 text-white' 
-                      : 'bg-white border-gray-300 text-gray-900'
-                  }`}
-                />
-              </div>
-            </div>
-            <label className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={settings.twoFactorAuth}
-                onChange={(e) => handleSettingChange('twoFactorAuth', e.target.checked)}
-                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-              />
-              <span className={`text-xs ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                Enable Two-Factor Authentication
-              </span>
-            </label>
-          </div>
-        )}
-
-        {activeTab === 'advanced' && (
-          <div className="space-y-4">
-            <h3 className={`text-sm font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-              Advanced Settings
-            </h3>
-            <div className="space-y-3">
-              <label className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={settings.cacheEnabled}
-                  onChange={(e) => handleSettingChange('cacheEnabled', e.target.checked)}
-                  className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                />
-                <span className={`text-xs ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Enable Caching
-                </span>
-              </label>
-              <label className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={settings.compressionEnabled}
-                  onChange={(e) => handleSettingChange('compressionEnabled', e.target.checked)}
-                  className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                />
-                <span className={`text-xs ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Enable Compression
-                </span>
-              </label>
-              <label className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  checked={settings.analyticsEnabled}
-                  onChange={(e) => handleSettingChange('analyticsEnabled', e.target.checked)}
-                  className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-                />
-                <span className={`text-xs ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  Enable Analytics
-                </span>
-              </label>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Profile Settings */}
+        <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-2xl border shadow-sm p-6`}>
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+              <User className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             </div>
             <div>
-              <label className={`block text-xs font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                Backup Frequency
-              </label>
-              <select
-                value={settings.backupFrequency}
-                onChange={(e) => handleSettingChange('backupFrequency', e.target.value)}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs ${
-                  isDarkMode 
-                    ? 'bg-gray-900 border-gray-600 text-white' 
-                    : 'bg-white border-gray-300 text-gray-900'
-                }`}
-              >
-                <option value="hourly">Hourly</option>
-                <option value="daily">Daily</option>
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
-              </select>
+              <h2 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                Profile Information
+              </h2>
+              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                Update your personal information
+              </p>
             </div>
           </div>
-        )}
+
+          {/* Success Message */}
+          {successMessages.profile && (
+            <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
+                <span className="text-sm text-green-700 dark:text-green-400">{successMessages.profile}</span>
+              </div>
+            </div>
+          )}
+
+          <form onSubmit={handleProfileSubmit} className="space-y-4">
+            {/* Name */}
+            <div>
+              <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                Full Name
+              </label>
+              <div className="relative">
+                <User className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`} />
+                <input
+                  type="text"
+                  value={profileData.name}
+                  onChange={(e) => handleProfileChange('name', e.target.value)}
+                  className={`w-full pl-12 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
+                    isDarkMode 
+                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                  } ${errors.name ? 'border-red-500 focus:ring-red-500' : ''}`}
+                  placeholder="Enter your full name"
+                />
+              </div>
+              {errors.name && (
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.name}</p>
+              )}
+            </div>
+
+            {/* Email */}
+            <div>
+              <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                Email Address
+              </label>
+              <div className="relative">
+                <Mail className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`} />
+                <input
+                  type="email"
+                  value={profileData.email}
+                  onChange={(e) => handleProfileChange('email', e.target.value)}
+                  className={`w-full pl-12 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
+                    isDarkMode 
+                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                  } ${errors.email ? 'border-red-500 focus:ring-red-500' : ''}`}
+                  placeholder="Enter your email address"
+                />
+              </div>
+              {errors.email && (
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.email}</p>
+              )}
+            </div>
+
+            {/* Phone */}
+            <div>
+              <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                Phone Number
+              </label>
+              <div className="relative">
+                <Phone className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`} />
+                <input
+                  type="tel"
+                  value={profileData.phone}
+                  onChange={(e) => handleProfileChange('phone', e.target.value)}
+                  className={`w-full pl-12 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors ${
+                    isDarkMode 
+                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                  }`}
+                  placeholder="Enter your phone number (optional)"
+                />
+              </div>
+            </div>
+
+            {/* Bio */}
+            <div>
+              <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                Bio
+              </label>
+              <div className="relative">
+                <FileText className={`absolute left-3 top-3 w-5 h-5 ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`} />
+                <textarea
+                  value={profileData.bio}
+                  onChange={(e) => handleProfileChange('bio', e.target.value)}
+                  rows={3}
+                  className={`w-full pl-12 pr-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors resize-none ${
+                    isDarkMode 
+                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                  }`}
+                  placeholder="Tell us about yourself (optional)"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading.profile}
+              className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading.profile ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                  <span>Updating...</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  <span>Update Profile</span>
+                </>
+              )}
+            </button>
+          </form>
+        </div>
+
+        {/* Change Password */}
+        <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-2xl border shadow-sm p-6`}>
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
+              <Lock className="w-5 h-5 text-red-600 dark:text-red-400" />
+            </div>
+            <div>
+              <h2 className={`text-xl font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                Change Password
+              </h2>
+              <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                Update your account password
+              </p>
+            </div>
+          </div>
+
+          {/* Success Message */}
+          {successMessages.password && (
+            <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
+                <span className="text-sm text-green-700 dark:text-green-400">{successMessages.password}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Error Message */}
+          {errors.submit && (
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <div className="flex items-center space-x-2">
+                <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
+                <span className="text-sm text-red-700 dark:text-red-400">{errors.submit}</span>
+              </div>
+            </div>
+          )}
+
+          <form onSubmit={handlePasswordSubmit} className="space-y-4">
+            {/* Current Password */}
+            <div>
+              <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                Current Password
+              </label>
+              <div className="relative">
+                <Key className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`} />
+                <input
+                  type={showPasswords.current ? 'text' : 'password'}
+                  value={passwordData.currentPassword}
+                  onChange={(e) => handlePasswordChange('currentPassword', e.target.value)}
+                  className={`w-full pl-12 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors ${
+                    isDarkMode 
+                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                  } ${errors.currentPassword ? 'border-red-500 focus:ring-red-500' : ''}`}
+                  placeholder="Enter your current password"
+                />
+                <button
+                  type="button"
+                  onClick={() => togglePasswordVisibility('current')}
+                  className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${isDarkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`}
+                >
+                  {showPasswords.current ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+              {errors.currentPassword && (
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.currentPassword}</p>
+              )}
+            </div>
+
+            {/* New Password */}
+            <div>
+              <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                New Password
+              </label>
+              <div className="relative">
+                <Lock className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`} />
+                <input
+                  type={showPasswords.new ? 'text' : 'password'}
+                  value={passwordData.newPassword}
+                  onChange={(e) => handlePasswordChange('newPassword', e.target.value)}
+                  className={`w-full pl-12 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors ${
+                    isDarkMode 
+                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                  } ${errors.newPassword ? 'border-red-500 focus:ring-red-500' : ''}`}
+                  placeholder="Enter your new password"
+                />
+                <button
+                  type="button"
+                  onClick={() => togglePasswordVisibility('new')}
+                  className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${isDarkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`}
+                >
+                  {showPasswords.new ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+              {errors.newPassword && (
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.newPassword}</p>
+              )}
+              <p className={`mt-1 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                Must be at least 6 characters long
+              </p>
+            </div>
+
+            {/* Confirm Password */}
+            <div>
+              <label className={`block text-sm font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                Confirm New Password
+              </label>
+              <div className="relative">
+                <Shield className={`absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`} />
+                <input
+                  type={showPasswords.confirm ? 'text' : 'password'}
+                  value={passwordData.confirmPassword}
+                  onChange={(e) => handlePasswordChange('confirmPassword', e.target.value)}
+                  className={`w-full pl-12 pr-12 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors ${
+                    isDarkMode 
+                      ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400' 
+                      : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                  } ${errors.confirmPassword ? 'border-red-500 focus:ring-red-500' : ''}`}
+                  placeholder="Confirm your new password"
+                />
+                <button
+                  type="button"
+                  onClick={() => togglePasswordVisibility('confirm')}
+                  className={`absolute right-3 top-1/2 transform -translate-y-1/2 ${isDarkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-400 hover:text-gray-600'}`}
+                >
+                  {showPasswords.confirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+              {errors.confirmPassword && (
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.confirmPassword}</p>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading.password}
+              className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading.password ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                  <span>Updating...</span>
+                </>
+              ) : (
+                <>
+                  <Lock className="w-4 h-4" />
+                  <span>Change Password</span>
+                </>
+              )}
+            </button>
+          </form>
+        </div>
+      </div>
+
+      {/* Account Information */}
+      <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-2xl border shadow-sm p-6`}>
+        <h3 className={`text-lg font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+          Account Information
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
+            <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Role</p>
+            <p className={`text-base ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>{user?.role}</p>
+          </div>
+          <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
+            <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Last Login</p>
+            <p className={`text-base ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+              {user?.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
+            </p>
+          </div>
+          <div className={`p-4 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-gray-50'}`}>
+            <p className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>Member Since</p>
+            <p className={`text-base ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+              {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Unknown'}
+            </p>
+          </div>
+        </div>
       </div>
     </div>
   );

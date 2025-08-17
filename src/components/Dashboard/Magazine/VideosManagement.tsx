@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import  { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import VideoForm from './VideoForm';
+import { videosApi } from '../../../api/videos';
+import { useToast } from '../../../contexts/ToastContext';
 import { 
   Plus, 
   Search, 
@@ -27,76 +30,50 @@ interface VideosManagementProps {
 }
 
 export default function VideosManagement({ isDarkMode }: VideosManagementProps) {
+  const navigate = useNavigate();
+  const { showSuccess, showError } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [showVideoForm, setShowVideoForm] = useState(false);
   const [editingVideo, setEditingVideo] = useState<any>(null);
-  const [saveMessage, setSaveMessage] = useState('');
+  const [videos, setVideos] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [deletingVideo, setDeletingVideo] = useState<any>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  // Magazine videos data (4 videos for the magazine section)
-  const magazineVideos = [
-    {
-      id: 'v1',
-      title: "The Future of Education in Africa",
-      description: "A comprehensive look at educational transformation across the continent",
-      duration: "25:30",
-      views: "125K",
-      uploadDate: "2024-03-15",
-      status: 'published',
-      category: "Tech Trends",
-      section: "Magazine",
-      rating: 4.8,
-      isNew: true,
-      thumbnail: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80",
-      youtubeUrl: "https://youtube.com/watch?v=example1"
-    },
-    {
-      id: 'v2',
-      title: "Digital Learning Revolution",
-      description: "How technology is reshaping classrooms worldwide",
-      duration: "18:45",
-      views: "98K",
-      uploadDate: "2024-03-12",
-      status: 'published',
-      category: "Tech Trends",
-      section: "Magazine",
-      rating: 4.6,
-      isNew: false,
-      thumbnail: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80",
-      youtubeUrl: "https://youtube.com/watch?v=example2"
-    },
-    {
-      id: 'v3',
-      title: "Women in STEM Education",
-      description: "Inspiring stories of female leaders in science and technology education",
-      duration: "22:15",
-      views: "87K",
-      uploadDate: "2024-03-10",
-      status: 'published',
-      category: "Career Campus",
-      section: "Magazine",
-      rating: 4.9,
-      isNew: false,
-      thumbnail: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80",
-      youtubeUrl: "https://youtube.com/watch?v=example3"
-    },
-    {
-      id: 'v4',
-      title: "Innovation in Rural Schools",
-      description: "Creative solutions for educational challenges in remote areas",
-      duration: "20:30",
-      views: "76K",
-      uploadDate: "2024-03-08",
-      status: 'published',
-      category: "Spirit of Africa",
-      section: "Magazine",
-      rating: 4.7,
-      isNew: false,
-      thumbnail: "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80",
-      youtubeUrl: "https://youtube.com/watch?v=example4"
+  useEffect(() => {
+    loadVideos();
+  }, [currentPage, selectedCategory, selectedStatus]);
+
+  const loadVideos = async () => {
+    try {
+      setLoading(true);
+      const response = await videosApi.getVideos({
+        page: currentPage,
+        limit: 10,
+        ...(selectedCategory !== 'all' && { category: selectedCategory }),
+        ...(selectedStatus !== 'all' && { status: selectedStatus })
+      });
+      
+      if (response.success) {
+        setVideos(response.data || []);
+        setTotalPages(response.pagination?.totalPages || 1);
+      } else {
+        setVideos([]);
+        setTotalPages(1);
+      }
+    } catch (error) {
+      console.error('Error loading videos:', error);
+      showError('Error loading videos');
+      setVideos([]);
+      setTotalPages(1);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
   const categories = [
     'Research World',
@@ -109,16 +86,11 @@ export default function VideosManagement({ isDarkMode }: VideosManagementProps) 
     'E! Corner'
   ];
 
-  // Filter videos
-  const filteredVideos = magazineVideos.filter(video => {
-    const matchesSearch = !searchQuery || 
-      video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      video.description.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesCategory = selectedCategory === 'all' || video.category === selectedCategory;
-    const matchesStatus = selectedStatus === 'all' || video.status === selectedStatus;
-    
-    return matchesSearch && matchesCategory && matchesStatus;
+  // Filter videos by search query
+  const filteredVideos = videos.filter(video => {
+    if (!searchQuery) return true;
+    return video.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           video.description?.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
   const handleNewVideo = () => {
@@ -133,21 +105,55 @@ export default function VideosManagement({ isDarkMode }: VideosManagementProps) 
 
   const handleSaveVideo = async (videoData: any) => {
     try {
-      console.log('Video saved successfully:', videoData);
-      setSaveMessage('Video saved successfully!');
+      if (editingVideo) {
+        await videosApi.updateVideo(editingVideo._id || editingVideo.id, videoData);
+        showSuccess('Video updated successfully!');
+      } else {
+        await videosApi.createVideo(videoData);
+        showSuccess('Video created successfully!');
+      }
       
-      // In a real app, this would update the videos list
-      setTimeout(() => {
-        setSaveMessage('');
-      }, 3000);
-      
-    } catch (error) {
+      await loadVideos();
+      setShowVideoForm(false);
+      setEditingVideo(null);
+    } catch (error: any) {
       console.error('Error saving video:', error);
-      setSaveMessage('Error saving video. Please try again.');
+      // Show simple error message instead of full JSON
+      if (editingVideo) {
+        showError('Error updating video');
+      } else {
+        showError('Error creating video');
+      }
     }
+  };
+
+  const handleDeleteClick = (video: any) => {
+    setDeletingVideo(video);
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingVideo) return;
     
-    setShowVideoForm(false);
-    setEditingVideo(null);
+    setLoading(true);
+    
+    try {
+      await videosApi.deleteVideo(deletingVideo._id || deletingVideo.id);
+      showSuccess('Video deleted successfully!');
+      await loadVideos();
+    } catch (error: any) {
+      console.error('Error deleting video:', error);
+      showError('Error deleting video');
+    } finally {
+      setLoading(false);
+      setShowDeleteModal(false);
+      setDeletingVideo(null);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setShowDeleteModal(false);
+    setDeletingVideo(null);
   };
 
   const getStatusIcon = (status: string) => {
@@ -190,12 +196,6 @@ export default function VideosManagement({ isDarkMode }: VideosManagementProps) 
         </button>
       </div>
 
-      {/* Save Message */}
-      {saveMessage && (
-        <div className={`${saveMessage.includes('Error') ? 'bg-red-50 border-red-200 text-red-700' : 'bg-green-50 border-green-200 text-green-700'} rounded-lg border p-3`}>
-          <p className="text-sm">{saveMessage}</p>
-        </div>
-      )}
 
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
@@ -206,7 +206,7 @@ export default function VideosManagement({ isDarkMode }: VideosManagementProps) 
                 Total Videos
               </p>
               <p className={`text-lg font-bold mt-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                {magazineVideos.length}/4
+                {videos.length}
               </p>
             </div>
             <div className="bg-red-100 text-red-600 dark:bg-red-900/20 dark:text-red-400 p-2 rounded-lg">
@@ -222,7 +222,11 @@ export default function VideosManagement({ isDarkMode }: VideosManagementProps) 
                 Total Views
               </p>
               <p className={`text-lg font-bold mt-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                386K
+                {videos.reduce((total, video) => {
+                  const viewsStr = video.views?.toString() || '0';
+                  const views = parseInt(viewsStr.replace(/[K,]/g, '')) || 0;
+                  return total + (viewsStr.includes('K') ? views * 1000 : views);
+                }, 0).toLocaleString()}
               </p>
             </div>
             <div className="bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 p-2 rounded-lg">
@@ -238,7 +242,9 @@ export default function VideosManagement({ isDarkMode }: VideosManagementProps) 
                 Avg Rating
               </p>
               <p className={`text-lg font-bold mt-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                4.8
+                {videos.length > 0 ? (
+                  (videos.reduce((total, video) => total + (video.rating || 0), 0) / videos.length).toFixed(1)
+                ) : '0.0'}
               </p>
             </div>
             <div className="bg-yellow-100 text-yellow-600 dark:bg-yellow-900/20 dark:text-yellow-400 p-2 rounded-lg">
@@ -254,7 +260,7 @@ export default function VideosManagement({ isDarkMode }: VideosManagementProps) 
                 Published
               </p>
               <p className={`text-lg font-bold mt-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                {magazineVideos.filter(v => v.status === 'published').length}
+                {videos.filter(v => v.status === 'published').length}
               </p>
             </div>
             <div className="bg-green-100 text-green-600 dark:bg-green-900/20 dark:text-green-400 p-2 rounded-lg">
@@ -308,22 +314,36 @@ export default function VideosManagement({ isDarkMode }: VideosManagementProps) 
           >
             <option value="all">All Status</option>
             <option value="published">Published</option>
-            <option value="draft">Draft</option>
-            <option value="scheduled">Scheduled</option>
           </select>
         </div>
       </div>
 
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+          <span className={`ml-3 text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+            Loading videos...
+          </span>
+        </div>
+      )}
+
       {/* Videos Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {filteredVideos.map((video) => (
-          <div key={video.id} className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border overflow-hidden hover:shadow-lg transition-all duration-300`}>
+      {!loading && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {filteredVideos.map((video) => {
+            const videoId = video._id || video.id;
+            return (
+          <div key={videoId} className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer`} onClick={() => navigate(`/admin/video/${videoId}`)}>
             {/* Video Thumbnail */}
             <div className="relative">
               <img 
-                src={video.thumbnail}
+                src={video.thumbnail || 'https://via.placeholder.com/400x200?text=No+Image'}
                 alt={video.title}
                 className="w-full h-32 object-cover"
+                onError={(e) => {
+                  e.currentTarget.src = 'https://via.placeholder.com/400x200?text=No+Image';
+                }}
               />
               <div className="absolute inset-0 bg-black bg-opacity-40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                 <Play className="w-8 h-8 text-white" />
@@ -343,7 +363,7 @@ export default function VideosManagement({ isDarkMode }: VideosManagementProps) 
               </div>
 
               {/* New Badge */}
-              {video.isNew && (
+              {video.is_new && (
                 <div className="absolute top-2 right-2 bg-red-600 text-white px-2 py-1 rounded text-xs font-bold">
                   NEW
                 </div>
@@ -356,12 +376,14 @@ export default function VideosManagement({ isDarkMode }: VideosManagementProps) 
                 <span className="bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 px-2 py-1 rounded text-xs">
                   {video.category}
                 </span>
-                <div className="flex items-center space-x-1">
-                  <Star className="w-3 h-3 text-yellow-500 fill-current" />
-                  <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    {video.rating}
-                  </span>
-                </div>
+                {video.rating > 0 && (
+                  <div className="flex items-center space-x-1">
+                    <Star className="w-3 h-3 text-yellow-500 fill-current" />
+                    <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                      {video.rating}
+                    </span>
+                  </div>
+                )}
               </div>
 
               <h3 className={`text-sm font-bold mb-2 line-clamp-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
@@ -381,30 +403,38 @@ export default function VideosManagement({ isDarkMode }: VideosManagementProps) 
                   <div className="flex items-center space-x-1">
                     <Calendar className="w-3 h-3 text-gray-400" />
                     <span className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>
-                      {new Date(video.uploadDate).toLocaleDateString()}
+                      {new Date(video.upload_date || video.createdAt).toLocaleDateString()}
                     </span>
                   </div>
                 </div>
 
                 <div className="flex items-center space-x-1">
-                  <button className={`p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    <Eye className="w-3 h-3" />
-                  </button>
                   <button 
-                    onClick={() => handleEditVideo(video)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEditVideo(video);
+                    }}
                     className={`p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}
                   >
                     <Edit className="w-3 h-3" />
                   </button>
-                  <button className={`p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    <MoreHorizontal className="w-3 h-3" />
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteClick(video);
+                    }}
+                    className={`p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/20 text-red-500`}
+                  >
+                    <Trash2 className="w-3 h-3" />
                   </button>
                 </div>
               </div>
             </div>
           </div>
-        ))}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Info Box */}
       <div className={`${isDarkMode ? 'bg-blue-900/20 border-blue-700' : 'bg-blue-50 border-blue-200'} rounded-lg border p-4`}>
@@ -436,6 +466,84 @@ export default function VideosManagement({ isDarkMode }: VideosManagementProps) 
           initialData={editingVideo}
           mode={editingVideo ? 'edit' : 'create'}
         />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && deletingVideo && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-xl border shadow-2xl w-full max-w-md`}>
+            {/* Header */}
+            <div className={`flex items-center justify-between p-4 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-red-100 dark:bg-red-900/20 rounded-lg">
+                  <Trash2 className="w-5 h-5 text-red-600 dark:text-red-400" />
+                </div>
+                <div>
+                  <h2 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    Delete Video
+                  </h2>
+                  <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    This action cannot be undone
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-4">
+              <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} mb-4`}>
+                Are you sure you want to delete "<span className="font-medium">{deletingVideo.title}</span>"? 
+                This will permanently remove the video and all its data.
+              </p>
+              
+              <div className={`${isDarkMode ? 'bg-red-900/20 border-red-700' : 'bg-red-50 border-red-200'} rounded-lg border p-3`}>
+                <div className="flex items-start space-x-2">
+                  <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className={`text-xs font-medium ${isDarkMode ? 'text-red-300' : 'text-red-800'}`}>
+                      Warning
+                    </p>
+                    <p className={`text-xs ${isDarkMode ? 'text-red-400' : 'text-red-700'}`}>
+                      This action is permanent and cannot be undone.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className={`flex items-center justify-end space-x-3 p-4 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+              <button
+                onClick={handleDeleteCancel}
+                className={`px-4 py-2 border rounded-lg text-sm font-medium transition-colors ${
+                  isDarkMode 
+                    ? 'border-gray-600 text-gray-300 hover:bg-gray-700' 
+                    : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}
+                disabled={loading}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={loading}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors flex items-center space-x-2 disabled:opacity-50"
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3 h-3" />
+                    <span>Delete Video</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

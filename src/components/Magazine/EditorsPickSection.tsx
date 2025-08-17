@@ -1,6 +1,6 @@
 import React from 'react';
 import { User, Clock, Eye } from 'lucide-react';
-import { useData } from '../../contexts/DataContext';
+import { usePublicData } from '../../contexts/PublicDataContext';
 import { useNavigate } from 'react-router-dom';
 
 interface EditorsPickSectionProps {
@@ -8,45 +8,20 @@ interface EditorsPickSectionProps {
 }
 
 export default function EditorsPickSection({ isDarkMode }: EditorsPickSectionProps) {
-  const { editorsPickArticles } = useData();
+  const { articles } = usePublicData();
   const navigate = useNavigate();
 
-  // Fallback data if no editor's pick articles are set
-  const defaultEditorsPickArticles = [
-    {
-      title: "Revolutionary Teaching Methods Transforming African Classrooms",
-      excerpt: "Discover innovative pedagogical approaches that are changing how students learn and engage with educational content across the continent.",
-      category: "Research World",
-      author: "Prof. Kwame Asante",
-      readTime: "8 min read",
-      views: "24.5K",
-      image: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80"
-    },
-    {
-      title: "The Digital Divide: Bridging Educational Gaps Through Innovation",
-      excerpt: "Exploring how technology and creative solutions are making quality education accessible to underserved communities.",
-      category: "Tech Trends",
-      author: "Dr. Fatima Al-Rashid",
-      readTime: "6 min read",
-      views: "31.2K",
-      image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80"
-    },
-    {
-      title: "Preserving Indigenous Knowledge in Modern Curricula",
-      excerpt: "How traditional wisdom and cultural heritage are being integrated into contemporary educational frameworks.",
-      category: "Spirit of Africa",
-      author: "Chief Amina Hassan",
-      readTime: "7 min read",
-      views: "18.7K",
-      image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80"
-    }
-  ];
+  // Get trending articles as editor's pick
+  const editorsPickArticles = articles.filter(article => article.trending).slice(0, 4);
 
-  const displayArticles = editorsPickArticles.length > 0 ? editorsPickArticles : defaultEditorsPickArticles;
+  // Only show if we have real editor's pick articles
+  if (editorsPickArticles.length === 0) {
+    return null; // Hide the entire section if no editor's pick articles
+  }
 
   const handleArticleClick = (article: any) => {
-    if (article.id) {
-      navigate(`/article/${article.id}`);
+    if (article._id || article.id) {
+      navigate(`/article/${article._id || article.id}`);
     }
   };
 
@@ -64,9 +39,9 @@ export default function EditorsPickSection({ isDarkMode }: EditorsPickSectionPro
           </div>
         </div>
 
-        {/* Three Articles Grid - Enhanced Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
-          {displayArticles.slice(0, 3).map((article, index) => (
+        {/* Four Articles Grid - Enhanced Layout */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
+          {editorsPickArticles.slice(0, 4).map((article, index) => (
             <div 
               key={index}
               className={`group cursor-pointer ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'} rounded-2xl overflow-hidden shadow-lg border hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2`}
@@ -75,7 +50,7 @@ export default function EditorsPickSection({ isDarkMode }: EditorsPickSectionPro
               {/* Article Image - Enhanced with overlay effects */}
               <div className="relative overflow-hidden">
                 <img 
-                  src={article.featured_image || article.featuredImage || article.image}
+                  src={article.featured_image || article.featuredImage}
                   alt={article.title}
                   className="w-full h-56 sm:h-64 lg:h-56 xl:h-64 object-cover group-hover:scale-110 transition-transform duration-700"
                   onError={(e) => {
@@ -87,11 +62,13 @@ export default function EditorsPickSection({ isDarkMode }: EditorsPickSectionPro
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 
                 {/* Category Badge - Enhanced styling */}
-                <div className="absolute top-4 left-4">
-                  <span className="inline-flex items-center px-3 py-1.5 border-2 border-white text-white rounded-lg text-xs font-bold backdrop-blur-sm bg-black/50 whitespace-nowrap">
-                    {article.category_name || article.category}
-                  </span>
-                </div>
+                {(article.category) && (
+                  <div className="absolute top-4 left-4">
+                    <span className="inline-flex items-center px-3 py-1.5 border-2 border-white text-white rounded-lg text-xs font-bold backdrop-blur-sm bg-black/50 whitespace-nowrap">
+                      { article.category}
+                    </span>
+                  </div>
+                )}
                 
                 {/* Views Badge - Top right */}
               </div>
@@ -114,18 +91,22 @@ export default function EditorsPickSection({ isDarkMode }: EditorsPickSectionPro
                 
                 {/* Author and Meta Info */}
                 <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center space-x-2">
-                    <User className="w-4 h-4 text-gray-400" />
-                    <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                      {article.author}
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Clock className="w-4 h-4 text-gray-400" />
-                    <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                      {article.readTime}
-                    </span>
-                  </div>
+                  {article.author && (
+                    <div className="flex items-center space-x-2">
+                      <User className="w-4 h-4 text-gray-400" />
+                      <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        {article.author}
+                      </span>
+                    </div>
+                  )}
+                  {article.readTime && (
+                    <div className="flex items-center space-x-2">
+                      <Clock className="w-4 h-4 text-gray-400" />
+                      <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                        {article.readTime}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 
                 {/* Read More Button */}

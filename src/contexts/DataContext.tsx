@@ -1,13 +1,17 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { publicApi } from '../api/public';
+import { podcastsApi } from '../api/podcasts';
 
 // Types
 export interface Article {
-  id: string;
+  id?: string;
+  _id?: string;
   title: string;
   subtitle?: string;
   excerpt: string;
   content: string;
-  category: string;
+  category?: string;
+  categoryName?: string;
   author: string;
   authorBio?: string;
   publishDate: string;
@@ -20,9 +24,13 @@ export interface Article {
   allowComments: boolean;
   featured: boolean;
   trending: boolean;
-  views: string;
-  createdAt: string;
-  updatedAt: string;
+  editors_pick?: boolean;
+  views?: string | number;
+  createdAt?: string;
+  updatedAt?: string;
+  isMainArticle?: boolean;
+  isSecondMainArticle?: boolean;
+  mainArticlePosition?: 'main' | 'second' | null;
 }
 
 export interface Video {
@@ -98,6 +106,9 @@ interface DataContextType {
   
   // Loading state
   isLoading: boolean;
+  
+  // Refresh data
+  fetchData: () => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -421,14 +432,89 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const [podcastSeries] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Initialize with dummy data only
   const fetchData = async () => {
-    // Use only dummy data - no backend calls
-    setArticles(dummyArticles);
-    setMainArticleState(dummyArticles[0]);
-    setSecondMainArticleState(dummyArticles[1]);
-    setVideos(dummyVideos);
-    setPodcastEpisodes(dummyPodcastEpisodes);
+    setIsLoading(true);
+    try {
+      const response = await articlesApi.getArticles({ limit: 50 });
+      if (response.success && response.data) {
+        const backendArticles = response.data.map((article: any) => ({
+          ...article,
+          id: article._id || article.id,
+          category: article.categoryName || article.category,
+          views: article.views?.toString() || '0',
+          createdAt: article.createdAt || new Date().toISOString(),
+          updatedAt: article.updatedAt || new Date().toISOString()
+        }));
+        
+        setArticles(backendArticles);
+        
+        const mainArt = backendArticles.find(a => a.isMainArticle && a.status === 'published');
+        const secondArt = backendArticles.find(a => a.isSecondMainArticle && a.status === 'published');
+        
+        setMainArticleState(mainArt || null);
+        setSecondMainArticleState(secondArt || null);
+      } else {
+        setArticles([]);
+        setMainArticleState(null);
+        setSecondMainArticleState(null);
+      }
+    } catch (error) {
+      setArticles([]);
+      setMainArticleState(null);
+      setSecondMainArticleState(null);
+    }
+    
+    // Load videos from backend
+    try {
+      const videosResponse = await videosApi.getVideos({ limit: 20 });
+      if (videosResponse.success && videosResponse.data) {
+        const backendVideos = videosResponse.data.map((video: any) => ({
+          ...video,
+          id: video._id || video.id,
+          category: video.categoryName || video.category,
+          section: video.section || 'Magazine', // Default to Magazine if no section specified
+          thumbnail: video.thumbnail_url || video.thumbnail,
+          youtubeUrl: video.video_url || video.youtubeUrl || '#',
+          views: video.views?.toString() || '0',
+          createdAt: video.createdAt || new Date().toISOString(),
+          updatedAt: video.updatedAt || new Date().toISOString()
+        }));
+        
+        setVideos(backendVideos);
+      } else {
+        setVideos(dummyVideos);
+      }
+    } catch (error) {
+      console.error('Error loading videos:', error);
+      setVideos(dummyVideos);
+    }
+    
+    // Load podcasts from backend
+    try {
+      const podcastsResponse = await podcastsApi.getPodcasts({ limit: 20, status: 'published' });
+      if (podcastsResponse.success && podcastsResponse.data) {
+        const backendPodcasts = podcastsResponse.data.map((podcast: any) => ({
+          ...podcast,
+          id: podcast._id || podcast.id,
+          guest: podcast.guest_name || podcast.guest || 'Unknown Guest',
+          publishDate: podcast.publish_date || podcast.publishDate,
+          plays: podcast.plays?.toString() || '0',
+          downloads: podcast.downloads?.toString() || '0',
+          rating: podcast.rating || 0,
+          createdAt: podcast.createdAt || new Date().toISOString(),
+          updatedAt: podcast.updatedAt || new Date().toISOString()
+        }));
+        
+        setPodcastEpisodes(backendPodcasts);
+      } else {
+        setPodcastEpisodes([]);
+      }
+    } catch (error) {
+      console.error('Error loading podcasts:', error);
+      setPodcastEpisodes([]);
+    }
+    
+    setIsLoading(false);
   };
 
   useEffect(() => {
@@ -436,12 +522,15 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   }, []);
 
   // Computed values for article categories
-  const featuredArticles = articles.filter(article => article.featured && article.status === 'published').slice(0, 3);
-  const editorsPickArticles = articles.filter(article => article.status === 'published').slice(0, 3);
-  const trendingArticles = articles.filter(article => article.trending === true && article.status === 'published');
+  const featuredArticles = articles.filter(article => article.featured && article.status === 'published' && !article.isMainArticle && !article.isSecondMainArticle).slice(0, 3);
+  const editorsPickArticles = articles.filter(article => article.editors_pick === true && article.status === 'published' && !article.isMainArticle && !article.isSecondMainArticle).slice(0, 4);
+  const trendingArticles = articles.filter(article => article.trending === true && article.status === 'published' && !article.isMainArticle && !article.isSecondMainArticle);
   const otherArticles = articles.filter(article => 
     !article.featured && 
     !article.trending && 
+    !article.editors_pick &&
+    !article.isMainArticle &&
+    !article.isSecondMainArticle &&
     article.status === 'published' &&
     article.id !== mainArticle?.id &&
     article.id !== secondMainArticle?.id
@@ -450,13 +539,15 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   // Magazine videos (videos with section = "Magazine")
   const magazineVideos = videos.filter(video => video.section === 'Magazine' && video.status === 'published');
   
-  // TV Show videos (videos with section != "Magazine")
-  const tvShowVideos = videos.filter(video => video.section !== 'Magazine' && video.status === 'published');
+  // TV Show videos - for now show all videos since section field might not exist
+  // TODO: Update this logic based on actual video categorization in your database
+  const tvShowVideos = videos.filter(video => video.status === 'published');
 
   // Helper methods
   const getArticleById = (id: string): Article | undefined => {
-    // First try to find in current articles
-    const article = articles.find(article => article.id === id);
+    const article = articles.find(article => 
+      article.id === id || article._id === id
+    );
     return article;
   };
 
@@ -522,7 +613,10 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     getPodcastEpisodesBySeries,
     
     // Loading state
-    isLoading
+    isLoading,
+    
+    // Refresh data
+    fetchData
   };
 
   return (

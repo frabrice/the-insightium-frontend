@@ -1,28 +1,35 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { DataProvider } from './contexts/DataContext';
+import { PublicDataProvider } from './contexts/PublicDataContext';
 import { AuthProvider } from './contexts/AuthContext';
+import { ToastProvider } from './contexts/ToastContext';
 import Header from './components/Header';
 import MagazinePage from './pages/MagazinePage';
 import TVShowPage from './pages/TVShowPage';
+import TVShowDetailPage from './pages/TVShowDetailPage';
 import PodcastPage from './pages/PodcastPage';
 import AboutUsPage from './pages/AboutUsPage';
 import ArticlePage from './pages/ArticlePage';
+import VideoPage from './pages/VideoPage';
 import SearchResultsPage from './pages/SearchResultsPage';
 import ContactUsPage from './pages/ContactUsPage';
 import AdminLoginPage from './pages/AdminLoginPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import ArticlesManagement from './components/Dashboard/Magazine/ArticlesManagement';
+import AdminArticleView from './components/Dashboard/Magazine/AdminArticleView';
+import AdminVideoView from './components/Dashboard/Magazine/AdminVideoView';
+import AdminTVShowView from './components/Dashboard/TVShow/AdminTVShowView';
+import AdminPodcastView from './components/Dashboard/Podcast/AdminPodcastView';
 import MainArticlesManagement from './components/Dashboard/Magazine/MainArticlesManagement';
 import FeaturedArticlesManagement from './components/Dashboard/Magazine/FeaturedArticlesManagement';
 import EditorsPickManagement from './components/Dashboard/Magazine/EditorsPickManagement';
 import TrendingManagement from './components/Dashboard/Magazine/TrendingManagement';
-import CategoriesManagement from './components/Dashboard/Magazine/CategoriesManagement';
 import VideosManagement from './components/Dashboard/Magazine/VideosManagement';
 import TVShowManagement from './components/Dashboard/TVShow/TVShowManagement';
 import PodcastManagement from './components/Dashboard/Podcast/PodcastManagement';
-import UsersManagement from './components/Dashboard/Users/UsersManagement';
-import AnalyticsManagement from './components/Dashboard/Analytics/AnalyticsManagement';
 import SettingsManagement from './components/Dashboard/Settings/SettingsManagement';
 import DashboardLayout from './components/Dashboard/DashboardLayout';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
@@ -32,45 +39,64 @@ function App() {
 
   return (
     <AuthProvider>
-      <DataProvider>
+      <ToastProvider isDarkMode={isDarkMode}>
         <Router>
-          <Routes>
-            {/* Main Website Routes */}
+        <Routes>
+            {/* Public Website Routes with PublicDataProvider */}
             <Route 
               path="/" 
               element={
-                <div className={`min-h-screen ${isDarkMode ? 'dark' : ''}`}>
-                  <Header 
-                    isDarkMode={isDarkMode}
-                    onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
-                  />
-                  <MagazinePage isDarkMode={isDarkMode} />
-                </div>
+                <PublicDataProvider>
+                  <div className={`min-h-screen ${isDarkMode ? 'dark' : ''}`}>
+                    <Header 
+                      isDarkMode={isDarkMode}
+                      onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+                    />
+                    <MagazinePage isDarkMode={isDarkMode} />
+                  </div>
+                </PublicDataProvider>
               } 
             />
             
             <Route 
               path="/magazine" 
               element={
-                <div className={`min-h-screen ${isDarkMode ? 'dark' : ''}`}>
-                  <Header 
-                    isDarkMode={isDarkMode}
-                    onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
-                  />
-                  <MagazinePage isDarkMode={isDarkMode} />
-                </div>
+                <PublicDataProvider>
+                  <div className={`min-h-screen ${isDarkMode ? 'dark' : ''}`}>
+                    <Header 
+                      isDarkMode={isDarkMode}
+                      onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+                    />
+                    <MagazinePage isDarkMode={isDarkMode} />
+                  </div>
+                </PublicDataProvider>
               } 
             />
             
             <Route 
               path="/tv-show" 
               element={
+                <PublicDataProvider>
+                  <div className={`min-h-screen ${isDarkMode ? 'dark' : ''}`}>
+                    <Header 
+                      isDarkMode={isDarkMode}
+                      onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+                    />
+                    <TVShowPage isDarkMode={isDarkMode} />
+                  </div>
+                </PublicDataProvider>
+              } 
+            />
+            
+            <Route 
+              path="/tvshow/:id" 
+              element={
                 <div className={`min-h-screen ${isDarkMode ? 'dark' : ''}`}>
                   <Header 
                     isDarkMode={isDarkMode}
                     onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
                   />
-                  <TVShowPage isDarkMode={isDarkMode} />
+                  <TVShowDetailPage isDarkMode={isDarkMode} />
                 </div>
               } 
             />
@@ -78,26 +104,30 @@ function App() {
             <Route 
               path="/podcast" 
               element={
-                <div className={`min-h-screen ${isDarkMode ? 'dark' : ''}`}>
-                  <Header 
-                    isDarkMode={isDarkMode}
-                    onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
-                  />
-                  <PodcastPage isDarkMode={isDarkMode} />
-                </div>
+                <PublicDataProvider>
+                  <div className={`min-h-screen ${isDarkMode ? 'dark' : ''}`}>
+                    <Header 
+                      isDarkMode={isDarkMode}
+                      onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+                    />
+                    <PodcastPage isDarkMode={isDarkMode} />
+                  </div>
+                </PublicDataProvider>
               } 
             />
             
             <Route 
               path="/about" 
               element={
-                <div className={`min-h-screen ${isDarkMode ? 'dark' : ''}`}>
-                  <Header 
-                    isDarkMode={isDarkMode}
-                    onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
-                  />
-                  <AboutUsPage isDarkMode={isDarkMode} />
-                </div>
+                <PublicDataProvider>
+                  <div className={`min-h-screen ${isDarkMode ? 'dark' : ''}`}>
+                    <Header 
+                      isDarkMode={isDarkMode}
+                      onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+                    />
+                    <AboutUsPage isDarkMode={isDarkMode} />
+                  </div>
+                </PublicDataProvider>
               } 
             />
 
@@ -105,13 +135,99 @@ function App() {
             <Route 
               path="/article/:id" 
               element={
-                <div className={`min-h-screen ${isDarkMode ? 'dark' : ''}`}>
-                  <Header 
-                    isDarkMode={isDarkMode}
-                    onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
-                  />
-                  <ArticlePage isDarkMode={isDarkMode} />
-                </div>
+                <PublicDataProvider>
+                  <div className={`min-h-screen ${isDarkMode ? 'dark' : ''}`}>
+                    <Header 
+                      isDarkMode={isDarkMode}
+                      onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+                    />
+                    <ArticlePage isDarkMode={isDarkMode} />
+                  </div>
+                </PublicDataProvider>
+              } 
+            />
+
+            {/* Video Page Route */}
+            <Route 
+              path="/video/:id" 
+              element={
+                <PublicDataProvider>
+                  <div className={`min-h-screen ${isDarkMode ? 'dark' : ''}`}>
+                    <Header 
+                      isDarkMode={isDarkMode}
+                      onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+                    />
+                    <VideoPage isDarkMode={isDarkMode} />
+                  </div>
+                </PublicDataProvider>
+              } 
+            />
+            
+            {/* Admin Article View Route */}
+            <Route 
+              path="/admin/article/:id" 
+              element={
+                <DataProvider>
+                  <ProtectedRoute isDarkMode={isDarkMode}>
+                    <DashboardLayout 
+                      isDarkMode={isDarkMode}
+                      onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+                    >
+                      <AdminArticleView isDarkMode={isDarkMode} />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                </DataProvider>
+              } 
+            />
+            
+            {/* Admin Video View Route */}
+            <Route 
+              path="/admin/video/:id" 
+              element={
+                <DataProvider>
+                  <ProtectedRoute isDarkMode={isDarkMode}>
+                    <DashboardLayout 
+                      isDarkMode={isDarkMode}
+                      onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+                    >
+                      <AdminVideoView isDarkMode={isDarkMode} />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                </DataProvider>
+              } 
+            />
+            
+            {/* Admin TV Show View Route */}
+            <Route 
+              path="/admin/tvshow/:id" 
+              element={
+                <DataProvider>
+                  <ProtectedRoute isDarkMode={isDarkMode}>
+                    <DashboardLayout 
+                      isDarkMode={isDarkMode}
+                      onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+                    >
+                      <AdminTVShowView isDarkMode={isDarkMode} />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                </DataProvider>
+              } 
+            />
+            
+            {/* Admin Podcast View Route */}
+            <Route 
+              path="/admin/podcast/:id" 
+              element={
+                <DataProvider>
+                  <ProtectedRoute isDarkMode={isDarkMode}>
+                    <DashboardLayout 
+                      isDarkMode={isDarkMode}
+                      onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+                    >
+                      <AdminPodcastView isDarkMode={isDarkMode} />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                </DataProvider>
               } 
             />
             
@@ -131,32 +247,44 @@ function App() {
             <Route 
               path="/search" 
               element={
-                <div className={`min-h-screen ${isDarkMode ? 'dark' : ''}`}>
-                  <Header 
-                    isDarkMode={isDarkMode}
-                    onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
-                  />
-                  <SearchResultsPage isDarkMode={isDarkMode} />
-                </div>
+                <PublicDataProvider>
+                  <div className={`min-h-screen ${isDarkMode ? 'dark' : ''}`}>
+                    <Header 
+                      isDarkMode={isDarkMode}
+                      onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+                    />
+                    <SearchResultsPage isDarkMode={isDarkMode} />
+                  </div>
+                </PublicDataProvider>
               } 
             />
             
-            {/* Admin Login Route */}
+            {/* Admin Authentication Routes */}
             <Route 
               path="/admin/login" 
               element={<AdminLoginPage isDarkMode={isDarkMode} />} 
+            />
+            <Route 
+              path="/admin/forgot-password" 
+              element={<ForgotPasswordPage isDarkMode={isDarkMode} />} 
+            />
+            <Route 
+              path="/admin/reset-password/:token" 
+              element={<ResetPasswordPage isDarkMode={isDarkMode} />} 
             />
             
             {/* Protected Admin Dashboard Routes */}
             <Route 
               path="/admin/dashboard" 
               element={
-                <ProtectedRoute isDarkMode={isDarkMode}>
-                  <AdminDashboardPage 
-                    isDarkMode={isDarkMode}
-                    onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
-                  />
-                </ProtectedRoute>
+                <DataProvider>
+                  <ProtectedRoute isDarkMode={isDarkMode}>
+                    <AdminDashboardPage 
+                      isDarkMode={isDarkMode}
+                      onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+                    />
+                  </ProtectedRoute>
+                </DataProvider>
               } 
             />
             
@@ -164,98 +292,96 @@ function App() {
             <Route 
               path="/admin/magazine/articles" 
               element={
-                <ProtectedRoute isDarkMode={isDarkMode}>
-                  <DashboardLayout 
-                    isDarkMode={isDarkMode}
-                    onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
-                  >
-                    <ArticlesManagement isDarkMode={isDarkMode} />
-                  </DashboardLayout>
-                </ProtectedRoute>
+                <DataProvider>
+                  <ProtectedRoute isDarkMode={isDarkMode}>
+                    <DashboardLayout 
+                      isDarkMode={isDarkMode}
+                      onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+                    >
+                      <ArticlesManagement isDarkMode={isDarkMode} />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                </DataProvider>
               } 
             />
             
             <Route 
               path="/admin/magazine/main-articles" 
               element={
-                <ProtectedRoute isDarkMode={isDarkMode}>
-                  <DashboardLayout 
-                    isDarkMode={isDarkMode}
-                    onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
-                  >
-                    <MainArticlesManagement isDarkMode={isDarkMode} />
-                  </DashboardLayout>
-                </ProtectedRoute>
+                <DataProvider>
+                  <ProtectedRoute isDarkMode={isDarkMode}>
+                    <DashboardLayout 
+                      isDarkMode={isDarkMode}
+                      onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+                    >
+                      <MainArticlesManagement isDarkMode={isDarkMode} />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                </DataProvider>
               } 
             />
             
             <Route 
               path="/admin/magazine/featured" 
               element={
-                <ProtectedRoute isDarkMode={isDarkMode}>
-                  <DashboardLayout 
-                    isDarkMode={isDarkMode}
-                    onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
-                  >
-                    <FeaturedArticlesManagement isDarkMode={isDarkMode} />
-                  </DashboardLayout>
-                </ProtectedRoute>
+                <DataProvider>
+                  <ProtectedRoute isDarkMode={isDarkMode}>
+                    <DashboardLayout 
+                      isDarkMode={isDarkMode}
+                      onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+                    >
+                      <FeaturedArticlesManagement isDarkMode={isDarkMode} />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                </DataProvider>
               } 
             />
             
             <Route 
               path="/admin/magazine/editors-pick" 
               element={
-                <ProtectedRoute isDarkMode={isDarkMode}>
-                  <DashboardLayout 
-                    isDarkMode={isDarkMode}
-                    onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
-                  >
-                    <EditorsPickManagement isDarkMode={isDarkMode} />
-                  </DashboardLayout>
-                </ProtectedRoute>
+                <DataProvider>
+                  <ProtectedRoute isDarkMode={isDarkMode}>
+                    <DashboardLayout 
+                      isDarkMode={isDarkMode}
+                      onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+                    >
+                      <EditorsPickManagement isDarkMode={isDarkMode} />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                </DataProvider>
               } 
             />
             
             <Route 
               path="/admin/magazine/trending" 
               element={
-                <ProtectedRoute isDarkMode={isDarkMode}>
-                  <DashboardLayout 
-                    isDarkMode={isDarkMode}
-                    onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
-                  >
-                    <TrendingManagement isDarkMode={isDarkMode} />
-                  </DashboardLayout>
-                </ProtectedRoute>
-              } 
-            />
-            
-            <Route 
-              path="/admin/magazine/categories" 
-              element={
-                <ProtectedRoute isDarkMode={isDarkMode}>
-                  <DashboardLayout 
-                    isDarkMode={isDarkMode}
-                    onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
-                  >
-                    <CategoriesManagement isDarkMode={isDarkMode} />
-                  </DashboardLayout>
-                </ProtectedRoute>
+                <DataProvider>
+                  <ProtectedRoute isDarkMode={isDarkMode}>
+                    <DashboardLayout 
+                      isDarkMode={isDarkMode}
+                      onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+                    >
+                      <TrendingManagement isDarkMode={isDarkMode} />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                </DataProvider>
               } 
             />
             
             <Route 
               path="/admin/magazine/videos" 
               element={
-                <ProtectedRoute isDarkMode={isDarkMode}>
-                  <DashboardLayout 
-                    isDarkMode={isDarkMode}
-                    onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
-                  >
-                    <VideosManagement isDarkMode={isDarkMode} />
-                  </DashboardLayout>
-                </ProtectedRoute>
+                <DataProvider>
+                  <ProtectedRoute isDarkMode={isDarkMode}>
+                    <DashboardLayout 
+                      isDarkMode={isDarkMode}
+                      onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+                    >
+                      <VideosManagement isDarkMode={isDarkMode} />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                </DataProvider>
               } 
             />
             
@@ -263,14 +389,16 @@ function App() {
             <Route 
               path="/admin/tv-show" 
               element={
-                <ProtectedRoute isDarkMode={isDarkMode}>
-                  <DashboardLayout 
-                    isDarkMode={isDarkMode}
-                    onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
-                  >
-                    <TVShowManagement isDarkMode={isDarkMode} />
-                  </DashboardLayout>
-                </ProtectedRoute>
+                <DataProvider>
+                  <ProtectedRoute isDarkMode={isDarkMode}>
+                    <DashboardLayout 
+                      isDarkMode={isDarkMode}
+                      onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+                    >
+                      <TVShowManagement isDarkMode={isDarkMode} />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                </DataProvider>
               } 
             />
             
@@ -278,44 +406,16 @@ function App() {
             <Route 
               path="/admin/podcast" 
               element={
-                <ProtectedRoute isDarkMode={isDarkMode}>
-                  <DashboardLayout 
-                    isDarkMode={isDarkMode}
-                    onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
-                  >
-                    <PodcastManagement isDarkMode={isDarkMode} />
-                  </DashboardLayout>
-                </ProtectedRoute>
-              } 
-            />
-            
-            {/* Users Management Routes */}
-            <Route 
-              path="/admin/users" 
-              element={
-                <ProtectedRoute isDarkMode={isDarkMode}>
-                  <DashboardLayout 
-                    isDarkMode={isDarkMode}
-                    onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
-                  >
-                    <UsersManagement isDarkMode={isDarkMode} />
-                  </DashboardLayout>
-                </ProtectedRoute>
-              } 
-            />
-            
-            {/* Analytics Management Routes */}
-            <Route 
-              path="/admin/analytics" 
-              element={
-                <ProtectedRoute isDarkMode={isDarkMode}>
-                  <DashboardLayout 
-                    isDarkMode={isDarkMode}
-                    onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
-                  >
-                    <AnalyticsManagement isDarkMode={isDarkMode} />
-                  </DashboardLayout>
-                </ProtectedRoute>
+                <DataProvider>
+                  <ProtectedRoute isDarkMode={isDarkMode}>
+                    <DashboardLayout 
+                      isDarkMode={isDarkMode}
+                      onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+                    >
+                      <PodcastManagement isDarkMode={isDarkMode} />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                </DataProvider>
               } 
             />
             
@@ -323,14 +423,16 @@ function App() {
             <Route 
               path="/admin/settings" 
               element={
-                <ProtectedRoute isDarkMode={isDarkMode}>
-                  <DashboardLayout 
-                    isDarkMode={isDarkMode}
-                    onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
-                  >
-                    <SettingsManagement isDarkMode={isDarkMode} />
-                  </DashboardLayout>
-                </ProtectedRoute>
+                <DataProvider>
+                  <ProtectedRoute isDarkMode={isDarkMode}>
+                    <DashboardLayout 
+                      isDarkMode={isDarkMode}
+                      onToggleDarkMode={() => setIsDarkMode(!isDarkMode)}
+                    >
+                      <SettingsManagement isDarkMode={isDarkMode} />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                </DataProvider>
               } 
             />
             
@@ -341,7 +443,7 @@ function App() {
             />
           </Routes>
         </Router>
-      </DataProvider>
+      </ToastProvider>
     </AuthProvider>
   );
 }

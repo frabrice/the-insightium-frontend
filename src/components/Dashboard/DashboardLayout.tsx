@@ -61,7 +61,6 @@ export default function DashboardLayout({ children, isDarkMode, onToggleDarkMode
         { id: 'featured', label: 'Featured Articles', icon: Plus, path: '/admin/magazine/featured' },
         { id: 'editors-pick', label: 'Editor\'s Pick', icon: Edit, path: '/admin/magazine/editors-pick' },
         { id: 'trending', label: 'Trending', icon: BarChart3, path: '/admin/magazine/trending' },
-        { id: 'categories', label: 'Categories', icon: FileText, path: '/admin/magazine/categories' },
         { id: 'videos', label: 'Videos', icon: Video, path: '/admin/magazine/videos' }
       ]
     },
@@ -76,18 +75,6 @@ export default function DashboardLayout({ children, isDarkMode, onToggleDarkMode
       label: 'Podcast',
       icon: Mic,
       path: '/admin/podcast'
-    },
-    {
-      id: 'users',
-      label: 'Users',
-      icon: Users,
-      path: '/admin/users'
-    },
-    {
-      id: 'analytics',
-      label: 'Analytics',
-      icon: BarChart3,
-      path: '/admin/analytics'
     },
     {
       id: 'settings',
@@ -249,22 +236,6 @@ export default function DashboardLayout({ children, isDarkMode, onToggleDarkMode
               </p>
             </div>
             
-            <div className="flex items-center space-x-3">
-              {/* Quick Actions */}
-              <button className="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors" style={{ backgroundColor: '#F21717' }}>
-                <Plus className="w-3 h-3 inline mr-1" />
-                New Article
-              </button>
-              
-              {/* View Site */}
-              <button 
-                onClick={() => window.open('/', '_blank')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${isDarkMode ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-              >
-                <Eye className="w-3 h-3 inline mr-1" />
-                View Site
-              </button>
-            </div>
           </div>
         </header>
 

@@ -35,7 +35,7 @@ export default function PodcastForm({ isDarkMode, onClose, onSave, initialData, 
     title: initialData?.title || '',
     description: initialData?.description || '',
     duration: initialData?.duration || '',
-    guestId: initialData?.guest_id || '',
+    guestName: initialData?.guest_name || initialData?.guest || '',
     seriesId: initialData?.series_id || '',
     episodeNumber: initialData?.episode_number || '',
     image: initialData?.image || '',
@@ -46,7 +46,7 @@ export default function PodcastForm({ isDarkMode, onClose, onSave, initialData, 
     transcript: initialData?.transcript || '',
     tags: initialData?.tags || '',
     metaDescription: initialData?.meta_description || '',
-    status: initialData?.status || 'draft',
+    status: initialData?.status || 'published',
     featured: initialData?.featured || false,
     publishDate: initialData?.publish_date ? new Date(initialData.publish_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
   });
@@ -66,7 +66,7 @@ export default function PodcastForm({ isDarkMode, onClose, onSave, initialData, 
         title: formData.title,
         description: formData.description,
         duration: formData.duration,
-        guest_id: formData.guestId || null,
+        guest_name: formData.guestName,
         series_id: formData.seriesId || null,
         episode_number: formData.episodeNumber ? parseInt(formData.episodeNumber) : null,
         image: formData.image,
@@ -81,7 +81,6 @@ export default function PodcastForm({ isDarkMode, onClose, onSave, initialData, 
         status,
         publish_date: formData.publishDate,
         updated_at: new Date().toISOString(),
-        guest: guests.find(g => g.id === formData.guestId)?.full_name || 'Guest Name',
         id: initialData?.id || Date.now().toString()
       };
 
@@ -99,7 +98,6 @@ export default function PodcastForm({ isDarkMode, onClose, onSave, initialData, 
     { id: 'settings', label: 'Settings', icon: Tag }
   ];
 
-  const selectedGuest = guests.find(g => g.id === formData.guestId);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -186,11 +184,11 @@ export default function PodcastForm({ isDarkMode, onClose, onSave, initialData, 
                     <h1 className={`text-lg font-bold mb-2 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                       {formData.title || 'Episode Title'}
                     </h1>
-                    {selectedGuest && (
+                    {formData.guestName && (
                       <div className="flex items-center space-x-2 mb-2">
                         <User className="w-4 h-4 text-gray-400" />
                         <span className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                          with {selectedGuest.full_name}
+                          with {formData.guestName}
                         </span>
                       </div>
                     )}
@@ -364,53 +362,26 @@ export default function PodcastForm({ isDarkMode, onClose, onSave, initialData, 
                 <div className="space-y-4">
                   <div>
                     <label className={`block text-xs font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                      Select Guest
+                      Guest Name
                     </label>
-                    <select
-                      value={formData.guestId}
-                      onChange={(e) => handleInputChange('guestId', e.target.value)}
+                    <input
+                      type="text"
+                      value={formData.guestName}
+                      onChange={(e) => handleInputChange('guestName', e.target.value)}
+                      placeholder="Enter guest name"
                       className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-sm ${
                         isDarkMode 
-                          ? 'bg-gray-900 border-gray-600 text-white' 
-                          : 'bg-white border-gray-300 text-gray-900'
+                          ? 'bg-gray-900 border-gray-600 text-white placeholder-gray-400' 
+                          : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
                       }`}
-                    >
-                      <option value="">Select a guest</option>
-                      {guests.map(guest => (
-                        <option key={guest.id} value={guest.id}>
-                          {guest.full_name} - {guest.title}
-                        </option>
-                      ))}
-                    </select>
+                    />
                   </div>
-
-                  {selectedGuest && (
-                    <div className={`${isDarkMode ? 'bg-gray-900 border-gray-600' : 'bg-gray-50 border-gray-200'} rounded-lg border p-4`}>
-                      <h3 className={`text-sm font-bold mb-3 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                        Guest Information
-                      </h3>
-                      <div className="space-y-2">
-                        <div>
-                          <span className={`text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Name: </span>
-                          <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{selectedGuest.full_name}</span>
-                        </div>
-                        <div>
-                          <span className={`text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Title: </span>
-                          <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{selectedGuest.title}</span>
-                        </div>
-                        <div>
-                          <span className={`text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Organization: </span>
-                          <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{selectedGuest.organization}</span>
-                        </div>
-                        {selectedGuest.bio && (
-                          <div>
-                            <span className={`text-xs font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>Bio: </span>
-                            <p className={`text-xs mt-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>{selectedGuest.bio}</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
+                  
+                  <div className={`${isDarkMode ? 'bg-gray-900 border-gray-600' : 'bg-gray-50 border-gray-200'} rounded-lg border p-4`}>
+                    <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                      Enter the name of your podcast guest. This will be displayed on the episode listing.
+                    </p>
+                  </div>
                 </div>
               )}
 
@@ -567,9 +538,7 @@ export default function PodcastForm({ isDarkMode, onClose, onSave, initialData, 
                           : 'bg-white border-gray-300 text-gray-900'
                       }`}
                     >
-                      <option value="draft">Draft</option>
                       <option value="published">Published</option>
-                      <option value="scheduled">Scheduled</option>
                     </select>
                   </div>
 
@@ -609,29 +578,13 @@ export default function PodcastForm({ isDarkMode, onClose, onSave, initialData, 
             </span>
           </div>
           
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => handleSave('draft')}
-              className={`px-4 py-2 border rounded-lg text-xs font-medium transition-colors ${
-                isDarkMode 
-                  ? 'border-gray-600 text-gray-300 hover:bg-gray-700' 
-                  : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              Save as Draft
-            </button>
-            <button
-              onClick={() => handleSave('scheduled')}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors"
-            >
-              Schedule
-            </button>
+          <div className="flex items-center justify-end">
             <button
               onClick={() => handleSave('published')}
               className="px-4 py-2 bg-green-600 text-white rounded-lg text-xs font-medium hover:bg-green-700 transition-colors flex items-center space-x-1"
             >
               <Save className="w-3 h-3" />
-              <span>Publish Episode</span>
+              <span>Save Episode</span>
             </button>
           </div>
         </div>

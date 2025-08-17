@@ -1,18 +1,13 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { authApi, User } from '../api/auth';
 
 interface AuthContextType {
   isAuthenticated: boolean;
-  user: AdminUser | null;
+  user: User | null;
   login: (email: string, password: string) => Promise<boolean>;
-  logout: () => void;
+  logout: () => Promise<void>;
   isLoading: boolean;
-}
-
-interface AdminUser {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -31,70 +26,43 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState<AdminUser | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Check for existing session on mount
+  // Check for existing authentication on mount
   useEffect(() => {
-    const checkSession = () => {
-      const savedSession = localStorage.getItem('admin_session');
-      if (savedSession) {
+    const checkAuth = async () => {
+      if (authApi.isAuthenticated()) {
         try {
-          const sessionData = JSON.parse(savedSession);
-          const expiryTime = new Date(sessionData.expiresAt);
-          
-          if (expiryTime > new Date()) {
-            setUser(sessionData.user);
+          const response = await authApi.getMe();
+          if (response.success && response.data) {
+            setUser(response.data);
             setIsAuthenticated(true);
           } else {
-            localStorage.removeItem('admin_session');
+            // Invalid token, clear it
+            setIsAuthenticated(false);
+            setUser(null);
           }
         } catch (error) {
-          localStorage.removeItem('admin_session');
+          console.error('Auth check failed:', error);
+          setIsAuthenticated(false);
+          setUser(null);
         }
       }
       setIsLoading(false);
     };
 
-    checkSession();
+    checkAuth();
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await authApi.login(email, password);
       
-      // Demo credentials - in production, this would be a real API call
-      const validCredentials = [
-        { email: 'admin@theinsightium.com', password: 'admin123', name: 'Admin User', role: 'admin' },
-        { email: 'editor@theinsightium.com', password: 'editor123', name: 'Editor User', role: 'editor' }
-      ];
-
-      const validUser = validCredentials.find(
-        cred => cred.email === email && cred.password === password
-      );
-
-      if (validUser) {
-        const adminUser: AdminUser = {
-          id: '1',
-          email: validUser.email,
-          name: validUser.name,
-          role: validUser.role
-        };
-
-        // Create session that expires in 8 hours
-        const expiresAt = new Date();
-        expiresAt.setHours(expiresAt.getHours() + 8);
-
-        const sessionData = {
-          user: adminUser,
-          expiresAt: expiresAt.toISOString()
-        };
-
-        localStorage.setItem('admin_session', JSON.stringify(sessionData));
-        setUser(adminUser);
+      if (response.success && response.data?.user) {
+        setUser(response.data.user);
         setIsAuthenticated(true);
         setIsLoading(false);
         return true;
@@ -103,15 +71,34 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return false;
       }
     } catch (error) {
+      console.error('Login error:', error);
       setIsLoading(false);
       return false;
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('admin_session');
-    setUser(null);
-    setIsAuthenticated(false);
+  const logout = async () => {
+    try {
+      await authApi.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setUser(null);
+      setIsAuthenticated(false);
+    }
+  };
+
+  const refreshUser = async () => {
+    if (authApi.isAuthenticated()) {
+      try {
+        const response = await authApi.getMe();
+        if (response.success && response.data) {
+          setUser(response.data);
+        }
+      } catch (error) {
+        console.error('Refresh user error:', error);
+      }
+    }
   };
 
   const value: AuthContextType = {
@@ -119,7 +106,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     user,
     login,
     logout,
-    isLoading
+    isLoading,
+    refreshUser
   };
 
   return (

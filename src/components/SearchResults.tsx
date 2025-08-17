@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Search, Filter, SortAsc, SortDesc, Calendar, User, Clock, Eye, Play, Mic, BookOpen, X } from 'lucide-react';
-import { useData } from '../contexts/DataContext';
+import { usePublicData } from '../contexts/PublicDataContext';
 import Footer from './shared/Footer';
 
 interface SearchResultsProps {
@@ -10,7 +10,7 @@ interface SearchResultsProps {
 
 interface SearchResult {
   id: string;
-  type: 'article' | 'video' | 'podcast';
+  type: 'article' | 'video' | 'tvshow' | 'podcast';
   title: string;
   description: string;
   category: string;
@@ -28,14 +28,14 @@ interface SearchResult {
 export default function SearchResults({ isDarkMode }: SearchResultsProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { articles, videos, podcastEpisodes } = useData();
+  const { articles, videos, tvShows, podcastEpisodes } = usePublicData();
   
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [filteredResults, setFilteredResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [sortBy, setSortBy] = useState<'relevance' | 'date' | 'popularity'>('relevance');
-  const [filterBy, setFilterBy] = useState<'all' | 'articles' | 'videos' | 'podcasts'>('all');
+  const [filterBy, setFilterBy] = useState<'all' | 'articles' | 'videos' | 'tvshows' | 'podcasts'>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
 
   const categories = [
@@ -63,14 +63,15 @@ export default function SearchResults({ isDarkMode }: SearchResultsProps) {
     }
     
     // Category match
-    if (item.category?.toLowerCase().includes(queryLower)) score += 5;
+    const category = item.categoryName || item.category;
+    if (category?.toLowerCase().includes(queryLower)) score += 5;
     
     // Description/excerpt match
     const description = item.description || item.excerpt || '';
     if (description.toLowerCase().includes(queryLower)) score += 3;
     
     // Author/guest match
-    const person = item.author || item.guest || '';
+    const person = item.author || item.guest_name || item.guest || '';
     if (person.toLowerCase().includes(queryLower)) score += 4;
     
     // Tags match (for articles)
@@ -96,16 +97,16 @@ export default function SearchResults({ isDarkMode }: SearchResultsProps) {
       const relevance = calculateRelevance(article, query);
       if (relevance > 0) {
         searchResults.push({
-          id: article.id,
+          id: article._id || article.id,
           type: 'article',
           title: article.title,
-          description: article.excerpt,
-          category: article.category,
+          description: article.excerpt || '',
+          category: article.categoryName || article.category || '',
           author: article.author,
           publishDate: article.publishDate,
           readTime: article.readTime,
-          views: article.views,
-          image: article.featuredImage,
+          views: article.views?.toString() || '0',
+          image: article.featuredImage || article.featured_image || '',
           relevanceScore: relevance
         });
       }
@@ -116,15 +117,34 @@ export default function SearchResults({ isDarkMode }: SearchResultsProps) {
       const relevance = calculateRelevance(video, query);
       if (relevance > 0) {
         searchResults.push({
-          id: video.id,
+          id: video._id || video.id,
           type: 'video',
           title: video.title,
-          description: video.description,
+          description: video.description || '',
           category: video.category,
-          publishDate: video.uploadDate,
+          publishDate: video.upload_date || '',
           duration: video.duration,
-          views: video.views,
-          image: video.thumbnail,
+          views: video.views?.toString() || '0',
+          image: video.thumbnail || video.thumbnail_url || '',
+          relevanceScore: relevance
+        });
+      }
+    });
+
+    // Search TV shows
+    tvShows.forEach(tvShow => {
+      const relevance = calculateRelevance(tvShow, query);
+      if (relevance > 0) {
+        searchResults.push({
+          id: tvShow._id || tvShow.id,
+          type: 'tvshow',
+          title: tvShow.title,
+          description: tvShow.description || '',
+          category: tvShow.category,
+          publishDate: tvShow.upload_date || '',
+          duration: tvShow.duration,
+          views: tvShow.views?.toString() || '0',
+          image: tvShow.thumbnail || '',
           relevanceScore: relevance
         });
       }
@@ -135,16 +155,16 @@ export default function SearchResults({ isDarkMode }: SearchResultsProps) {
       const relevance = calculateRelevance(episode, query);
       if (relevance > 0) {
         searchResults.push({
-          id: episode.id,
+          id: episode._id || episode.id,
           type: 'podcast',
           title: episode.title,
-          description: episode.description,
+          description: episode.description || '',
           category: 'Podcast',
-          guest: episode.guest,
-          publishDate: episode.publishDate,
+          guest: episode.guest_name,
+          publishDate: episode.publish_date || '',
           duration: episode.duration,
-          plays: episode.plays,
-          image: episode.image,
+          plays: episode.views?.toString() || '0',
+          image: episode.thumbnail || '',
           relevanceScore: relevance
         });
       }
@@ -163,6 +183,7 @@ export default function SearchResults({ isDarkMode }: SearchResultsProps) {
       filtered = filtered.filter(result => {
         if (filterBy === 'articles') return result.type === 'article';
         if (filterBy === 'videos') return result.type === 'video';
+        if (filterBy === 'tvshows') return result.type === 'tvshow';
         if (filterBy === 'podcasts') return result.type === 'podcast';
         return true;
       });
@@ -197,7 +218,7 @@ export default function SearchResults({ isDarkMode }: SearchResultsProps) {
     const query = searchParams.get('q') || '';
     setSearchQuery(query);
     performSearch(query);
-  }, [searchParams, articles, videos, podcastEpisodes]);
+  }, [searchParams, articles, videos, tvShows, podcastEpisodes]);
 
   // Handle new search
   const handleSearch = (e: React.FormEvent) => {
@@ -212,7 +233,9 @@ export default function SearchResults({ isDarkMode }: SearchResultsProps) {
     if (result.type === 'article') {
       navigate(`/article/${result.id}`);
     } else if (result.type === 'video') {
-      navigate('/tv-show');
+      navigate(`/video/${result.id}`);
+    } else if (result.type === 'tvshow') {
+      navigate(`/tvshow/${result.id}`);
     } else if (result.type === 'podcast') {
       navigate('/podcast');
     }
@@ -224,6 +247,7 @@ export default function SearchResults({ isDarkMode }: SearchResultsProps) {
     switch (type) {
       case 'article': return <BookOpen className="w-4 h-4" />;
       case 'video': return <Play className="w-4 h-4" />;
+      case 'tvshow': return <Play className="w-4 h-4" />;
       case 'podcast': return <Mic className="w-4 h-4" />;
       default: return <BookOpen className="w-4 h-4" />;
     }
@@ -234,6 +258,7 @@ export default function SearchResults({ isDarkMode }: SearchResultsProps) {
     switch (type) {
       case 'article': return 'bg-blue-100 text-blue-600';
       case 'video': return 'bg-red-100 text-red-600';
+      case 'tvshow': return 'bg-purple-100 text-purple-600';
       case 'podcast': return 'bg-green-100 text-green-600';
       default: return 'bg-gray-100 text-gray-600';
     }
@@ -317,6 +342,7 @@ export default function SearchResults({ isDarkMode }: SearchResultsProps) {
                   <option value="all">All Content</option>
                   <option value="articles">Articles Only</option>
                   <option value="videos">Videos Only</option>
+                  <option value="tvshows">TV Shows Only</option>
                   <option value="podcasts">Podcasts Only</option>
                 </select>
               </div>

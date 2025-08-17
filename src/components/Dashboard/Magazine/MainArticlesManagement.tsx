@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import ArticleView from './ArticleView';
 import { 
   Star, 
   Edit, 
@@ -17,6 +18,7 @@ import {
   X
 } from 'lucide-react';
 import { useData } from '../../../contexts/DataContext';
+import { articlesApi } from '../../../api/articles';
 
 interface MainArticlesManagementProps {
   isDarkMode: boolean;
@@ -24,50 +26,49 @@ interface MainArticlesManagementProps {
 
 export default function MainArticlesManagement({ isDarkMode }: MainArticlesManagementProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [mainArticles, setMainArticles] = useState<any>({ main: null, second: null });
+  const [mainArticles, setMainArticles] = useState<{main: any, second: any}>({ main: null, second: null });
   const [recentArticles, setRecentArticles] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string>('');
   const [saveStatusType, setSaveStatusType] = useState<'success' | 'error'>('success');
-  const { articles } = useData();
+  const [viewingArticle, setViewingArticle] = useState<any>(null);
+  const { fetchData } = useData();
 
-  // Fetch main articles and recent articles
   useEffect(() => {
-    // Use dummy data instead of database calls
-    setMainArticles({
-      main: articles[0] || null,
-      second: articles[1] || null
-    });
-    setIsLoading(false);
+    loadMainArticles();
   }, []);
 
-  useEffect(() => {
-    if (articles.length > 0) {
-      fetchRecentArticles();
+  const loadMainArticles = async () => {
+    try {
+      const response = await articlesApi.getMainArticles();
+      if (response.success) {
+        setMainArticles({
+          main: response.data.main,
+          second: response.data.second
+        });
+      }
+    } catch (error) {
+      console.error('Error loading main articles:', error);
+    } finally {
+      setIsLoading(false);
     }
-  }, [articles]);
+  };
 
-  const fetchRecentArticles = () => {
-    // Get articles from the last 3 days
-    const threeDaysAgo = new Date();
-    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+  useEffect(() => {
+    fetchRecentArticles();
+  }, [mainArticles]);
 
-    const recent = articles.filter(article => {
-      const publishDate = new Date(article.publishDate || article.publish_date);
-      const isRecent = publishDate >= threeDaysAgo;
-      const isPublished = article.status === 'published';
-      const isNotCurrentMain = article.id !== mainArticles.main?.id;
-      const isNotCurrentSecond = article.id !== mainArticles.second?.id;
-      
-      return isRecent && isPublished && isNotCurrentMain && isNotCurrentSecond;
-    }).sort((a, b) => {
-      const dateA = new Date(a.publishDate || a.publish_date);
-      const dateB = new Date(b.publishDate || b.publish_date);
-      return dateB.getTime() - dateA.getTime();
-    });
-
-    setRecentArticles(recent);
+  const fetchRecentArticles = async () => {
+    try {
+      const response = await articlesApi.getLatestArticlesExcludingMain(3);
+      if (response.success) {
+        setRecentArticles(response.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching recent articles:', error);
+      setRecentArticles([]);
+    }
   };
 
   // Filter recent articles based on search
@@ -86,18 +87,20 @@ export default function MainArticlesManagement({ isDarkMode }: MainArticlesManag
   const handleSetMainArticle = async (article: any, position: 'main' | 'second') => {
     setIsSaving(true);
     try {
-      // Update local state immediately
-      setMainArticles(prev => ({
+      const articleId = article._id || article.id;
+      await articlesApi.setMainArticle(articleId, position);
+      
+      setMainArticles((prev: {main: any, second: any}) => ({
         ...prev,
         [position]: article
       }));
 
-      // Refresh recent articles to remove the newly set article
-      setTimeout(() => {
-        fetchRecentArticles();
-      }, 100);
+      await fetchData();
+      fetchRecentArticles();
 
       showSaveStatus(`Article set as ${position} main article successfully!`, 'success');
+    } catch (error) {
+      showSaveStatus('Failed to update main article', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -106,18 +109,23 @@ export default function MainArticlesManagement({ isDarkMode }: MainArticlesManag
   const handleRemoveMainArticle = async (position: 'main' | 'second') => {
     setIsSaving(true);
     try {
-      // Update local state
-      setMainArticles(prev => ({
+      const article = mainArticles[position];
+      if (article) {
+        const articleId = article._id || article.id;
+        await articlesApi.removeMainArticle(articleId);
+      }
+      
+      setMainArticles((prev: {main: any, second: any}) => ({
         ...prev,
         [position]: null
       }));
 
-      // Refresh recent articles to include the removed article
-      setTimeout(() => {
-        fetchRecentArticles();
-      }, 100);
+      await fetchData();
+      fetchRecentArticles();
 
       showSaveStatus(`${position.charAt(0).toUpperCase() + position.slice(1)} main article removed successfully!`, 'success');
+    } catch (error) {
+      showSaveStatus('Failed to remove main article', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -140,13 +148,15 @@ export default function MainArticlesManagement({ isDarkMode }: MainArticlesManag
     }
   };
 
-  const handleRefresh = () => {
-    // Simulate refresh with dummy data
-    setMainArticles({
-      main: articles[0] || null,
-      second: articles[1] || null
-    });
-    showSaveStatus('Main articles refreshed!', 'success');
+  const handleRefresh = async () => {
+    setIsLoading(true);
+    await Promise.all([
+      fetchData(),
+      loadMainArticles(),
+      fetchRecentArticles()
+    ]);
+    setIsLoading(false);
+    showSaveStatus('Articles refreshed!', 'success');
   };
 
   const formatDate = (dateString: string) => {
@@ -305,11 +315,11 @@ export default function MainArticlesManagement({ isDarkMode }: MainArticlesManag
                     </span>
                   </div>
                   <div className="flex items-center space-x-1">
-                    <button className={`p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    <button 
+                      onClick={() => setViewingArticle(mainArticles.main)}
+                      className={`p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}
+                    >
                       <Eye className="w-3 h-3" />
-                    </button>
-                    <button className={`p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                      <Edit className="w-3 h-3" />
                     </button>
                   </div>
                 </div>
@@ -378,11 +388,11 @@ export default function MainArticlesManagement({ isDarkMode }: MainArticlesManag
                     </span>
                   </div>
                   <div className="flex items-center space-x-1">
-                    <button className={`p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    <button 
+                      onClick={() => setViewingArticle(mainArticles.second)}
+                      className={`p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}
+                    >
                       <Eye className="w-3 h-3" />
-                    </button>
-                    <button className={`p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                      <Edit className="w-3 h-3" />
                     </button>
                   </div>
                 </div>
@@ -398,13 +408,13 @@ export default function MainArticlesManagement({ isDarkMode }: MainArticlesManag
         </div>
       </div>
 
-      {/* Recent Articles (Last 3 Days) */}
+      {/* Latest Articles (Excluding Main Articles) */}
       <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border p-4`}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-2">
             <Clock className="w-4 h-4 text-blue-600" />
             <h2 className={`text-sm font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-              Recent Articles (Last 3 Days)
+              Latest 3 Articles (Excluding Main Articles)
             </h2>
             <span className={`text-xs px-2 py-1 rounded-full ${isDarkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'}`}>
               {filteredRecentArticles.length} articles
@@ -414,7 +424,7 @@ export default function MainArticlesManagement({ isDarkMode }: MainArticlesManag
             <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 w-3 h-3" />
             <input
               type="text"
-              placeholder="Search recent articles..."
+              placeholder="Search latest articles..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className={`pl-7 pr-3 py-1.5 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-xs w-64 ${
@@ -428,8 +438,10 @@ export default function MainArticlesManagement({ isDarkMode }: MainArticlesManag
 
         {filteredRecentArticles.length > 0 ? (
           <div className="space-y-2">
-            {filteredRecentArticles.map((article) => (
-              <div key={article.id} className={`flex items-center justify-between p-3 rounded-lg border ${isDarkMode ? 'border-gray-700 hover:bg-gray-750' : 'border-gray-200 hover:bg-gray-50'} transition-colors`}>
+            {filteredRecentArticles.map((article) => {
+              const articleId = article._id || article.id;
+              return (
+              <div key={articleId} className={`flex items-center justify-between p-3 rounded-lg border ${isDarkMode ? 'border-gray-700 hover:bg-gray-750' : 'border-gray-200 hover:bg-gray-50'} transition-colors`}>
                 <div className="flex items-center space-x-3">
                   <img 
                     src={article.featured_image || article.featuredImage}
@@ -468,7 +480,7 @@ export default function MainArticlesManagement({ isDarkMode }: MainArticlesManag
                 <div className="flex items-center space-x-2 ml-4">
                   <button 
                     onClick={() => handleSetMainArticle(article, 'main')}
-                    disabled={isSaving || mainArticles.main?.id === article.id}
+                    disabled={isSaving || (mainArticles.main?._id || mainArticles.main?.id) === articleId}
                     className="px-3 py-1 bg-yellow-600 text-white rounded text-xs hover:bg-yellow-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
                   >
                     <Star className="w-3 h-3" />
@@ -476,7 +488,7 @@ export default function MainArticlesManagement({ isDarkMode }: MainArticlesManag
                   </button>
                   <button 
                     onClick={() => handleSetMainArticle(article, 'second')}
-                    disabled={isSaving || mainArticles.second?.id === article.id}
+                    disabled={isSaving || (mainArticles.second?._id || mainArticles.second?.id) === articleId}
                     className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
                   >
                     <Star className="w-3 h-3" />
@@ -484,16 +496,16 @@ export default function MainArticlesManagement({ isDarkMode }: MainArticlesManag
                   </button>
                 </div>
               </div>
-            ))}
+            )})}
           </div>
         ) : (
           <div className={`text-center py-8 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
             <Clock className="w-8 h-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm font-medium">No recent articles found</p>
+            <p className="text-sm font-medium">No articles found</p>
             <p className="text-xs">
               {searchQuery 
-                ? `No articles match "${searchQuery}" from the last 3 days`
-                : 'No articles have been published in the last 3 days'
+                ? `No articles match "${searchQuery}"`
+                : 'No articles available (excluding main articles)'
               }
             </p>
             <button
@@ -527,15 +539,23 @@ export default function MainArticlesManagement({ isDarkMode }: MainArticlesManag
               Main Articles Management
             </h3>
             <ul className={`text-xs mt-1 space-y-1 ${isDarkMode ? 'text-green-400' : 'text-green-700'}`}>
-              <li>• Only articles from the last 3 days are shown for selection</li>
+              <li>• Latest 3 Articles: Shows the 3 most recent published articles (excluding current main articles)</li>
               <li>• Main article appears prominently on the homepage</li>
-              <li>• Second main article appears in the sidebar</li>
+              <li>• Second main article appears in the secondary position</li>
               <li>• You can swap positions or remove articles anytime</li>
-              <li>• Changes are applied immediately to your website</li>
+              <li>• Use the buttons to quickly set any article as main or second main</li>
             </ul>
           </div>
         </div>
       </div>
+
+      {viewingArticle && (
+        <ArticleView
+          isDarkMode={isDarkMode}
+          article={viewingArticle}
+          onClose={() => setViewingArticle(null)}
+        />
+      )}
     </div>
   );
 }

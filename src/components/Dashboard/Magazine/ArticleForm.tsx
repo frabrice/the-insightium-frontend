@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { articlesApi } from '../../../api/articles';
+import { useToast } from '../../../contexts/ToastContext';
 import { 
   Save, 
   X, 
@@ -26,29 +28,33 @@ interface ArticleFormProps {
 }
 
 export default function ArticleForm({ isDarkMode, onClose, onSave, initialData, mode = 'create' }: ArticleFormProps) {
+  const { showError, showSuccess } = useToast();
   const [formData, setFormData] = useState({
     title: initialData?.title || '',
     subtitle: initialData?.subtitle || '',
     excerpt: initialData?.excerpt || '',
     content: initialData?.content || '',
-    category: initialData?.category || 'Tech Trends',
+    category: initialData?.categoryName || initialData?.category || 'Tech Trends',
     author: initialData?.author || '',
     authorBio: initialData?.authorBio || '',
-    publishDate: initialData?.publishDate || new Date().toISOString().split('T')[0],
+    publishDate: initialData?.publishDate ? new Date(initialData.publishDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
     readTime: initialData?.readTime || '',
     tags: initialData?.tags || '',
     featuredImage: initialData?.featuredImage || '',
     featuredImageAlt: initialData?.featuredImageAlt || '',
     additionalImages: initialData?.additionalImages || [],
     metaDescription: initialData?.metaDescription || '',
-    status: initialData?.status || 'draft',
+    status: initialData?.status || 'published',
     allowComments: initialData?.allowComments !== undefined ? initialData.allowComments : true,
     featured: initialData?.featured || false,
-    trending: initialData?.trending || false
+    trending: initialData?.trending || false,
+    editorsPick: initialData?.editorsPick || false
   });
 
   const [activeTab, setActiveTab] = useState('content');
   const [previewMode, setPreviewMode] = useState(false);
+  const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [newImageUrl, setNewImageUrl] = useState('');
   const [newImageAlt, setNewImageAlt] = useState('');
   const [newImageCaption, setNewImageCaption] = useState('');
@@ -71,7 +77,42 @@ export default function ArticleForm({ isDarkMode, onClose, onSave, initialData, 
     }));
   };
 
-  const handleSave = (status: string) => {
+  const validateForm = () => {
+    const newErrors: {[key: string]: string} = {};
+    
+    if (!formData.title.trim()) {
+      newErrors.title = 'Title is required';
+    }
+    
+    if (!formData.excerpt.trim()) {
+      newErrors.excerpt = 'Excerpt is required';
+    }
+    
+    if (!formData.content.trim()) {
+      newErrors.content = 'Content is required';
+    }
+    
+    if (!formData.author.trim()) {
+      newErrors.author = 'Author is required';
+    }
+    
+    if (!formData.featuredImage.trim()) {
+      newErrors.featuredImage = 'Featured image is required';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSave = async (status: string = 'published') => {
+    if (!validateForm()) {
+      showError('Please fill all required fields');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    setErrors({});
+    
     const articleData = {
       title: formData.title,
       subtitle: formData.subtitle,
@@ -83,20 +124,73 @@ export default function ArticleForm({ isDarkMode, onClose, onSave, initialData, 
       tags: formData.tags,
       featured_image: formData.featuredImage,
       featured_image_alt: formData.featuredImageAlt,
+      additional_images: formData.additionalImages,
       meta_description: formData.metaDescription,
       read_time: formData.readTime,
       allow_comments: formData.allowComments,
       featured: formData.featured,
       trending: formData.trending,
+      editors_pick: formData.editorsPick,
       status,
-      publish_date: formData.publishDate,
-      updated_at: new Date().toISOString(),
-      id: initialData?.id || Date.now().toString()
+      publish_date: formData.publishDate
     };
     
-    // Simulate saving (frontend only)
-    console.log('Article saved (frontend only):', articleData);
-    onSave(articleData);
+    try {
+      let response;
+      if (mode === 'edit' && initialData?._id) {
+        response = await articlesApi.updateArticle(initialData._id, articleData);
+        showSuccess('Article updated successfully!', 'Your changes have been saved.');
+      } else {
+        response = await articlesApi.createArticle(articleData);
+        showSuccess('Article created successfully!', 'Your article has been published.');
+      }
+      onSave(response.data);
+    } catch (error: any) {
+      console.error('Article save error:', error);
+      
+      // Handle validation errors from backend
+      if (error.message && error.message.includes('validation error')) {
+        try {
+          const errorResponse = JSON.parse(error.message);
+          if (errorResponse.errors && Array.isArray(errorResponse.errors)) {
+            const fieldErrors: {[key: string]: string} = {};
+            let hasValidationErrors = false;
+            
+            errorResponse.errors.forEach((err: any) => {
+              if (err.path && err.msg) {
+                // Map backend field names to frontend field names
+                const fieldMap: {[key: string]: string} = {
+                  'featured_image': 'featuredImage',
+                  'category_name': 'category',
+                  'author': 'author',
+                  'title': 'title',
+                  'excerpt': 'excerpt',
+                  'content': 'content'
+                };
+                
+                const frontendField = fieldMap[err.path] || err.path;
+                fieldErrors[frontendField] = err.msg;
+                hasValidationErrors = true;
+              }
+            });
+            
+            if (hasValidationErrors) {
+              setErrors(fieldErrors);
+              // Only show the general validation message, not specific errors
+              showError('Please fill all required fields');
+              return;
+            }
+          }
+        } catch (parseError) {
+          // If parsing fails, fall through to generic error
+        }
+      }
+      
+      setErrors({ general: error.message || 'Failed to save article. Please try again.' });
+      showError('Save Failed', error.message || 'Failed to save article. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const estimateReadTime = (content: string) => {
@@ -304,12 +398,19 @@ export default function ArticleForm({ isDarkMode, onClose, onSave, initialData, 
                         value={formData.title}
                         onChange={(e) => handleInputChange('title', e.target.value)}
                         placeholder="Enter compelling article title"
-                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm ${
+                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 text-sm ${
+                          errors.title 
+                            ? 'border-red-500 focus:ring-red-500' 
+                            : 'focus:ring-red-500'
+                        } ${
                           isDarkMode 
                             ? 'bg-gray-900 border-gray-600 text-white placeholder-gray-400' 
                             : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
                         }`}
                       />
+                      {errors.title && (
+                        <p className="text-xs text-red-600 mt-1">{errors.title}</p>
+                      )}
                     </div>
 
                     {/* Subtitle */}
@@ -340,12 +441,19 @@ export default function ArticleForm({ isDarkMode, onClose, onSave, initialData, 
                         onChange={(e) => handleInputChange('excerpt', e.target.value)}
                         placeholder="Brief summary that appears in article listings"
                         rows={3}
-                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm resize-none ${
+                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 text-sm resize-none ${
+                          errors.excerpt 
+                            ? 'border-red-500 focus:ring-red-500' 
+                            : 'focus:ring-red-500'
+                        } ${
                           isDarkMode 
                             ? 'bg-gray-900 border-gray-600 text-white placeholder-gray-400' 
                             : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
                         }`}
                       />
+                      {errors.excerpt && (
+                        <p className="text-xs text-red-600 mt-1">{errors.excerpt}</p>
+                      )}
                     </div>
 
                     {/* Category & Author */}
@@ -357,7 +465,11 @@ export default function ArticleForm({ isDarkMode, onClose, onSave, initialData, 
                         <select
                           value={formData.category}
                           onChange={(e) => handleInputChange('category', e.target.value)}
-                          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm ${
+                          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 text-sm ${
+                            errors.category 
+                              ? 'border-red-500 focus:ring-red-500' 
+                              : 'focus:ring-red-500'
+                          } ${
                             isDarkMode 
                               ? 'bg-gray-900 border-gray-600 text-white' 
                               : 'bg-white border-gray-300 text-gray-900'
@@ -367,6 +479,9 @@ export default function ArticleForm({ isDarkMode, onClose, onSave, initialData, 
                             <option key={category} value={category}>{category}</option>
                           ))}
                         </select>
+                        {errors.category && (
+                          <p className="text-xs text-red-600 mt-1">{errors.category}</p>
+                        )}
                       </div>
                       <div>
                         <label className={`block text-xs font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
@@ -377,12 +492,19 @@ export default function ArticleForm({ isDarkMode, onClose, onSave, initialData, 
                           value={formData.author}
                           onChange={(e) => handleInputChange('author', e.target.value)}
                           placeholder="Author name"
-                          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm ${
+                          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 text-sm ${
+                            errors.author 
+                              ? 'border-red-500 focus:ring-red-500' 
+                              : 'focus:ring-red-500'
+                          } ${
                             isDarkMode 
                               ? 'bg-gray-900 border-gray-600 text-white placeholder-gray-400' 
                               : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
                           }`}
                         />
+                        {errors.author && (
+                          <p className="text-xs text-red-600 mt-1">{errors.author}</p>
+                        )}
                       </div>
                     </div>
 
@@ -416,12 +538,19 @@ export default function ArticleForm({ isDarkMode, onClose, onSave, initialData, 
                         onChange={(e) => handleInputChange('content', e.target.value)}
                         placeholder="Write your article content here..."
                         rows={12}
-                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm resize-none ${
+                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 text-sm resize-none ${
+                          errors.content 
+                            ? 'border-red-500 focus:ring-red-500' 
+                            : 'focus:ring-red-500'
+                        } ${
                           isDarkMode 
                             ? 'bg-gray-900 border-gray-600 text-white placeholder-gray-400' 
                             : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
                         }`}
                       />
+                      {errors.content && (
+                        <p className="text-xs text-red-600 mt-1">{errors.content}</p>
+                      )}
                     </div>
 
                     {/* Publish Date & Read Time */}
@@ -495,12 +624,19 @@ export default function ArticleForm({ isDarkMode, onClose, onSave, initialData, 
                           value={formData.featuredImage}
                           onChange={(e) => handleInputChange('featuredImage', e.target.value)}
                           placeholder="https://example.com/image.jpg"
-                          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm ${
+                          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 text-sm ${
+                            errors.featuredImage 
+                              ? 'border-red-500 focus:ring-red-500' 
+                              : 'focus:ring-red-500'
+                          } ${
                             isDarkMode 
                               ? 'bg-gray-900 border-gray-600 text-white placeholder-gray-400' 
                               : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
                           }`}
                         />
+                        {errors.featuredImage && (
+                          <p className="text-xs text-red-600 mt-1">{errors.featuredImage}</p>
+                        )}
                       </div>
 
                       {/* Image Alt Text */}
@@ -513,12 +649,19 @@ export default function ArticleForm({ isDarkMode, onClose, onSave, initialData, 
                           value={formData.featuredImageAlt}
                           onChange={(e) => handleInputChange('featuredImageAlt', e.target.value)}
                           placeholder="Describe the image for accessibility"
-                          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm ${
+                          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 text-sm ${
+                            errors.featuredImageAlt 
+                              ? 'border-red-500 focus:ring-red-500' 
+                              : 'focus:ring-red-500'
+                          } ${
                             isDarkMode 
                               ? 'bg-gray-900 border-gray-600 text-white placeholder-gray-400' 
                               : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
                           }`}
                         />
+                        {errors.featuredImageAlt && (
+                          <p className="text-xs text-red-600 mt-1">{errors.featuredImageAlt}</p>
+                        )}
                       </div>
                     </div>
 
@@ -733,8 +876,6 @@ export default function ArticleForm({ isDarkMode, onClose, onSave, initialData, 
                               : 'bg-white border-gray-300 text-gray-900'
                           }`}
                         >
-                          <option value="draft">Draft</option>
-                          <option value="review">Under Review</option>
                           <option value="published">Published</option>
                         </select>
                       </div>
@@ -776,6 +917,18 @@ export default function ArticleForm({ isDarkMode, onClose, onSave, initialData, 
                             Trending Article
                           </span>
                         </label>
+
+                        <label className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            checked={formData.editorsPick}
+                            onChange={(e) => handleInputChange('editorsPick', e.target.checked)}
+                            className="w-4 h-4 text-red-600 rounded focus:ring-red-500"
+                          />
+                          <span className={`text-xs ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                            Editor's Pick
+                          </span>
+                        </label>
                       </div>
                     </div>
 
@@ -811,44 +964,33 @@ export default function ArticleForm({ isDarkMode, onClose, onSave, initialData, 
         {/* Footer */}
         <div className={`flex items-center justify-between p-4 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
           <div className="flex items-center space-x-2">
-            <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-              Status: 
-            </span>
-            <span className={`text-xs font-medium px-2 py-1 rounded ${
-              formData.status === 'published' 
-                ? 'bg-green-100 text-green-600 dark:bg-green-900/20 dark:text-green-400'
-                : formData.status === 'review'
-                ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
-                : 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/20 dark:text-yellow-400'
-            }`}>
-              {formData.status.charAt(0).toUpperCase() + formData.status.slice(1)}
-            </span>
+            {errors.general && (
+              <span className="text-xs text-red-600 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded">
+                {errors.general}
+              </span>
+            )}
           </div>
           
           <div className="flex items-center space-x-2">
             <button
-              onClick={() => handleSave('draft')}
+              onClick={onClose}
               className={`px-4 py-2 border rounded-lg text-xs font-medium transition-colors ${
                 isDarkMode 
                   ? 'border-gray-600 text-gray-300 hover:bg-gray-700' 
                   : 'border-gray-300 text-gray-700 hover:bg-gray-50'
               }`}
+              disabled={isSubmitting}
             >
-              Save as Draft
-            </button>
-            <button
-              onClick={() => handleSave('review')}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors"
-            >
-              Submit for Review
+              Cancel
             </button>
             <button
               onClick={() => handleSave('published')}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg text-xs font-medium hover:bg-red-700 transition-colors flex items-center space-x-1"
+              disabled={isSubmitting}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg text-xs font-medium hover:bg-red-700 transition-colors flex items-center space-x-1 disabled:opacity-50"
               style={{ backgroundColor: '#F21717' }}
             >
               <Save className="w-3 h-3" />
-              <span>Publish Article</span>
+              <span>{isSubmitting ? 'Publishing...' : mode === 'edit' ? 'Update Article' : 'Publish Article'}</span>
             </button>
           </div>
         </div>

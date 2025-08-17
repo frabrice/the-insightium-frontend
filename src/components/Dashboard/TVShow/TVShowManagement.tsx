@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import TVShowForm from './TVShowForm';
+import { tvShowsApi } from '../../../api/tvshows';
+import { useToast } from '../../../contexts/ToastContext';
 import { 
   Plus, 
   Search, 
@@ -21,14 +24,14 @@ import {
   Upload,
   BarChart3
 } from 'lucide-react';
-import { useData } from '../../../contexts/DataContext';
-import { db } from '../../../lib/supabase';
 
 interface TVShowManagementProps {
   isDarkMode: boolean;
 }
 
 export default function TVShowManagement({ isDarkMode }: TVShowManagementProps) {
+  const navigate = useNavigate();
+  const { showSuccess, showError } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
@@ -37,95 +40,57 @@ export default function TVShowManagement({ isDarkMode }: TVShowManagementProps) 
   const [editingEpisode, setEditingEpisode] = useState<any>(null);
   const [episodes, setEpisodes] = useState<any[]>([]);
   const [seasons, setSeasons] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [saveMessage, setSaveMessage] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [deletingEpisode, setDeletingEpisode] = useState<any>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  // Fetch episodes and seasons
-  React.useEffect(() => {
-    // Use dummy data instead of database calls
-    setEpisodes(defaultEpisodes);
-    setSeasons([
-      { id: '1', season_number: 1, title: 'Season 1: Foundation' },
-      { id: '2', season_number: 2, title: 'Season 2: Innovation' }
-    ]);
-    setIsLoading(false);
-  }, []);
+  useEffect(() => {
+    loadTVShows();
+  }, [currentPage, selectedCategory, selectedStatus]);
 
-  const defaultEpisodes = [
-    {
-      id: '1',
-      title: 'Innovation Challenge: Episode 12',
-      description: 'Young innovators present groundbreaking solutions to Africa\'s educational challenges',
-      duration: '58:42',
-      views: '125K',
-      uploadDate: '2024-03-15',
-      status: 'published',
-      category: 'Full Episodes',
-      section: 'FullEpisodes',
-      rating: 4.9,
-      isNew: true,
-      thumbnail: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80'
-    },
-    {
-      id: '2',
-      title: 'Mathematics Showdown',
-      description: 'Intense mathematical problem-solving under pressure',
-      duration: '15:22',
-      views: '245K',
-      uploadDate: '2024-03-12',
-      status: 'published',
-      category: 'Mind Battles',
-      section: 'MindBattles',
-      rating: 4.9,
-      isNew: true,
-      thumbnail: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80'
-    },
-    {
-      id: '3',
-      title: 'Science Quiz Championship',
-      description: 'Students compete in an exciting science knowledge battle',
-      duration: '32:15',
-      views: '89K',
-      uploadDate: '2024-03-10',
-      status: 'published',
-      category: 'Mind Battles',
-      section: 'MindBattles',
-      rating: 4.7,
-      isNew: false,
-      thumbnail: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80'
-    },
-    {
-      id: '4',
-      title: 'Pitch Perfect: Startup Ideas',
-      description: 'Young entrepreneurs pitch their innovative business ideas',
-      duration: '45:30',
-      views: '67K',
-      uploadDate: '2024-03-08',
-      status: 'draft',
-      category: 'Pitch Perfect',
-      section: 'PitchPerfect',
-      rating: 4.5,
-      isNew: false,
-      thumbnail: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80'
+  const loadTVShows = async () => {
+    try {
+      setLoading(true);
+      const response = await tvShowsApi.getTVShows({
+        page: currentPage,
+        limit: 10,
+        ...(selectedCategory !== 'all' && { category: selectedCategory }),
+        ...(selectedStatus !== 'all' && { status: selectedStatus })
+      });
+      
+      if (response.success) {
+        setEpisodes(response.data || []);
+        setTotalPages(response.pagination?.totalPages || 1);
+      } else {
+        setEpisodes([]);
+        setTotalPages(1);
+      }
+      
+      // Set dummy seasons data
+      setSeasons([
+        { id: '1', season_number: 1, title: 'Season 1: Foundation' },
+        { id: '2', season_number: 2, title: 'Season 2: Innovation' }
+      ]);
+    } catch (error) {
+      console.error('Error loading TV shows:', error);
+      showError('Error loading TV shows');
+      setEpisodes([]);
+      setTotalPages(1);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
-  const displayEpisodes = episodes.length > 0 ? episodes : defaultEpisodes;
 
   const categories = ['Full Episodes', 'Mind Battles', 'Pitch Perfect', 'Insight Stories', 'Behind Insight'];
 
-  // Filter episodes
-  const filteredEpisodes = displayEpisodes.filter(episode => {
-    const matchesSearch = !searchQuery || 
-      episode.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      episode.description.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesCategory = selectedCategory === 'all' || episode.category === selectedCategory;
-    const matchesStatus = selectedStatus === 'all' || episode.status === selectedStatus;
-    const matchesSeason = selectedSeason === 'all' || 
-      (episode.tv_show_seasons && episode.tv_show_seasons.season_number.toString() === selectedSeason);
-    
-    return matchesSearch && matchesCategory && matchesStatus && matchesSeason;
+  // Filter episodes by search query
+  const filteredEpisodes = episodes.filter(episode => {
+    if (!searchQuery) return true;
+    return episode.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           episode.description?.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
   const handleNewEpisode = () => {
@@ -139,16 +104,55 @@ export default function TVShowManagement({ isDarkMode }: TVShowManagementProps) 
   };
 
   const handleSaveEpisode = async (episodeData: any) => {
-      console.log('Episode saved successfully:', episodeData);
-      setSaveMessage('Episode saved successfully!');
+    try {
+      if (editingEpisode) {
+        await tvShowsApi.updateTVShow(editingEpisode._id || editingEpisode.id, episodeData);
+        showSuccess('TV show episode updated successfully!');
+      } else {
+        await tvShowsApi.createTVShow(episodeData);
+        showSuccess('TV show episode created successfully!');
+      }
       
-      // Simulate refresh
-      setTimeout(() => {
-        setSaveMessage('');
-      }, 1000);
-      
-    setShowEpisodeForm(false);
-    setEditingEpisode(null);
+      await loadTVShows();
+      setShowEpisodeForm(false);
+      setEditingEpisode(null);
+    } catch (error: any) {
+      console.error('Error saving TV show episode:', error);
+      if (editingEpisode) {
+        showError('Error updating TV show episode');
+      } else {
+        showError('Error creating TV show episode');
+      }
+    }
+  };
+
+  const handleDeleteClick = (episode: any) => {
+    setDeletingEpisode(episode);
+    setShowDeleteModal(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingEpisode) return;
+    
+    setLoading(true);
+    
+    try {
+      await tvShowsApi.deleteTVShow(deletingEpisode._id || deletingEpisode.id);
+      showSuccess('TV show episode deleted successfully!');
+      await loadTVShows();
+    } catch (error: any) {
+      console.error('Error deleting TV show episode:', error);
+      showError('Error deleting TV show episode');
+    } finally {
+      setLoading(false);
+      setShowDeleteModal(false);
+      setDeletingEpisode(null);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setShowDeleteModal(false);
+    setDeletingEpisode(null);
   };
 
   const getStatusIcon = (status: string) => {
@@ -191,13 +195,6 @@ export default function TVShowManagement({ isDarkMode }: TVShowManagementProps) 
         </button>
       </div>
 
-      {/* Save Message */}
-      {saveMessage && (
-        <div className={`${saveMessage.includes('Error') ? 'bg-red-50 border-red-200 text-red-700' : 'bg-green-50 border-green-200 text-green-700'} rounded-lg border p-3`}>
-          <p className="text-sm">{saveMessage}</p>
-        </div>
-      )}
-
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
         <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border p-3`}>
@@ -207,7 +204,7 @@ export default function TVShowManagement({ isDarkMode }: TVShowManagementProps) 
                 Total Episodes
               </p>
               <p className={`text-lg font-bold mt-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                {displayEpisodes.length}
+                {episodes.length}
               </p>
             </div>
             <div className="bg-red-100 text-red-600 dark:bg-red-900/20 dark:text-red-400 p-2 rounded-lg">
@@ -223,7 +220,11 @@ export default function TVShowManagement({ isDarkMode }: TVShowManagementProps) 
                 Total Views
               </p>
               <p className={`text-lg font-bold mt-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                526K
+                {episodes.reduce((total, episode) => {
+                  const viewsStr = episode.views?.toString() || '0';
+                  const views = parseInt(viewsStr.replace(/[K,]/g, '')) || 0;
+                  return total + (viewsStr.includes('K') ? views * 1000 : views);
+                }, 0).toLocaleString()}
               </p>
             </div>
             <div className="bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 p-2 rounded-lg">
@@ -239,7 +240,9 @@ export default function TVShowManagement({ isDarkMode }: TVShowManagementProps) 
                 Avg Rating
               </p>
               <p className={`text-lg font-bold mt-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                4.8
+                {episodes.length > 0 ? (
+                  (episodes.reduce((total, episode) => total + (episode.rating || 0), 0) / episodes.length).toFixed(1)
+                ) : '0.0'}
               </p>
             </div>
             <div className="bg-yellow-100 text-yellow-600 dark:bg-yellow-900/20 dark:text-yellow-400 p-2 rounded-lg">
@@ -255,7 +258,7 @@ export default function TVShowManagement({ isDarkMode }: TVShowManagementProps) 
                 Published
               </p>
               <p className={`text-lg font-bold mt-1 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                {displayEpisodes.filter(e => e.status === 'published').length}
+                {episodes.filter(e => e.status === 'published').length}
               </p>
             </div>
             <div className="bg-green-100 text-green-600 dark:bg-green-900/20 dark:text-green-400 p-2 rounded-lg">
@@ -324,22 +327,27 @@ export default function TVShowManagement({ isDarkMode }: TVShowManagementProps) 
           >
             <option value="all">All Status</option>
             <option value="published">Published</option>
-            <option value="draft">Draft</option>
-            <option value="scheduled">Scheduled</option>
           </select>
         </div>
       </div>
 
-      {/* Episodes Grid */}
-      {isLoading ? (
-        <div className="text-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600 mx-auto mb-4"></div>
-          <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>Loading episodes...</p>
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+          <span className={`ml-3 text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+            Loading TV show episodes...
+          </span>
         </div>
-      ) : (
+      )}
+
+      {/* Episodes Grid */}
+      {!loading && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredEpisodes.map((episode) => (
-          <div key={episode.id} className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border overflow-hidden hover:shadow-lg transition-all duration-300`}>
+        {filteredEpisodes.map((episode) => {
+            const episodeId = episode._id || episode.id;
+            return (
+          <div key={episodeId} className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-lg border overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer`} onClick={() => navigate(`/admin/tvshow/${episodeId}`)}>
             {/* Episode Thumbnail */}
             <div className="relative">
               <img 
@@ -365,7 +373,7 @@ export default function TVShowManagement({ isDarkMode }: TVShowManagementProps) 
               </div>
 
               {/* New Badge */}
-              {episode.isNew && (
+              {episode.is_new && (
                 <div className="absolute top-2 right-2 bg-red-600 text-white px-2 py-1 rounded text-xs font-bold">
                   NEW
                 </div>
@@ -400,39 +408,46 @@ export default function TVShowManagement({ isDarkMode }: TVShowManagementProps) 
                     <Eye className="w-3 h-3 text-gray-400" />
                     <span className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>{episode.views}</span>
                   </div>
-                  {episode.tv_show_seasons && (
+                  {episode.season_id && (
                     <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                      S{episode.tv_show_seasons.season_number}
+                      S{episode.season_id}
                       {episode.episode_number && `E${episode.episode_number}`}
                     </span>
                   )}
                   <div className="flex items-center space-x-1">
                     <Calendar className="w-3 h-3 text-gray-400" />
                     <span className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>
-                      {new Date(episode.uploadDate).toLocaleDateString()}
+                      {new Date(episode.upload_date || episode.createdAt).toLocaleDateString()}
                     </span>
                   </div>
                 </div>
 
                 <div className="flex items-center space-x-1">
-                  <button className={`p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    <Eye className="w-3 h-3" />
-                  </button>
                   <button 
-                    onClick={() => handleEditEpisode(episode)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleEditEpisode(episode);
+                    }}
                     className={`p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}
                   >
                     <Edit className="w-3 h-3" />
                   </button>
-                  <button className={`p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    <MoreHorizontal className="w-3 h-3" />
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteClick(episode);
+                    }}
+                    className={`p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/20 text-red-500`}
+                  >
+                    <Trash2 className="w-3 h-3" />
                   </button>
                 </div>
               </div>
             </div>
           </div>
-        ))}
-      </div>
+            );
+          })}
+        </div>
       )}
 
       {/* Episode Form Modal */}
@@ -448,6 +463,84 @@ export default function TVShowManagement({ isDarkMode }: TVShowManagementProps) 
           mode={editingEpisode ? 'edit' : 'create'}
           seasons={seasons}
         />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && deletingEpisode && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} rounded-xl border shadow-2xl w-full max-w-md`}>
+            {/* Header */}
+            <div className={`flex items-center justify-between p-4 border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-red-100 dark:bg-red-900/20 rounded-lg">
+                  <Trash2 className="w-5 h-5 text-red-600 dark:text-red-400" />
+                </div>
+                <div>
+                  <h2 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    Delete Episode
+                  </h2>
+                  <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                    This action cannot be undone
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-4">
+              <p className={`text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-700'} mb-4`}>
+                Are you sure you want to delete "<span className="font-medium">{deletingEpisode.title}</span>"? 
+                This will permanently remove the episode and all its data.
+              </p>
+              
+              <div className={`${isDarkMode ? 'bg-red-900/20 border-red-700' : 'bg-red-50 border-red-200'} rounded-lg border p-3`}>
+                <div className="flex items-start space-x-2">
+                  <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className={`text-xs font-medium ${isDarkMode ? 'text-red-300' : 'text-red-800'}`}>
+                      Warning
+                    </p>
+                    <p className={`text-xs ${isDarkMode ? 'text-red-400' : 'text-red-700'}`}>
+                      This action is permanent and cannot be undone.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className={`flex items-center justify-end space-x-3 p-4 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
+              <button
+                onClick={handleDeleteCancel}
+                className={`px-4 py-2 border rounded-lg text-sm font-medium transition-colors ${
+                  isDarkMode 
+                    ? 'border-gray-600 text-gray-300 hover:bg-gray-700' 
+                    : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                }`}
+                disabled={loading}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={loading}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 transition-colors flex items-center space-x-2 disabled:opacity-50"
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
+                    <span>Deleting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3 h-3" />
+                    <span>Delete Episode</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

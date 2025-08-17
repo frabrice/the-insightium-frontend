@@ -56,7 +56,7 @@ export default function Header({ isDarkMode, onToggleDarkMode }: HeaderProps) {
 
   const getActiveSection = () => {
     if (location.pathname === '/' || location.pathname === '/magazine') return 'magazine';
-    if (location.pathname === '/tv-show') return 'tv';
+    if (location.pathname === '/tv-show' || location.pathname.startsWith('/tvshow/')) return 'tv';
     if (location.pathname === '/podcast') return 'podcast';
     if (location.pathname === '/about') return 'about';
     if (location.pathname.startsWith('/article/')) return 'magazine';
@@ -213,7 +213,7 @@ export default function Header({ isDarkMode, onToggleDarkMode }: HeaderProps) {
             {/* Mobile Product Navigation Dropdown */}
             <div className="md:hidden relative">
               <select
-                value={location.pathname}
+                value={location.pathname.startsWith('/tvshow/') ? '/tv-show' : location.pathname}
                 onChange={(e) => {
                   navigate(e.target.value);
                   window.scrollTo(0, 0);

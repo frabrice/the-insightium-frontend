@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Calendar, User, Clock, Eye, Heart, Share2, ArrowLeft, MessageSquare, Tag, TrendingUp } from 'lucide-react';
-import { useData } from '../contexts/DataContext';
+import { Calendar, User, Clock, Eye, Heart, ArrowLeft, MessageSquare, Tag, TrendingUp, Send, ChevronDown, ChevronUp } from 'lucide-react';
+import { publicApi, PublicArticle } from '../api/public';
 import Footer from '../components/shared/Footer';
+import { likesApi } from '../api/likes';
+import { commentsApi, Comment, CreateCommentData } from '../api/comments';
 
 interface ArticlePageProps {
   isDarkMode: boolean;
@@ -11,57 +13,140 @@ interface ArticlePageProps {
 export default function ArticlePage({ isDarkMode }: ArticlePageProps) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getArticleById, articles } = useData();
-  const [article, setArticle] = useState<any>(null);
-  const [relatedArticles, setRelatedArticles] = useState<any[]>([]);
+  const [article, setArticle] = useState<PublicArticle | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Like functionality
+  const [likeCount, setLikeCount] = useState(0);
+  const [likeLoading, setLikeLoading] = useState(false);
+  
+  // Comment functionality
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [commentCount, setCommentCount] = useState(0);
+  const [showCommentForm, setShowCommentForm] = useState(false);
+  const [commentLoading, setCommentLoading] = useState(false);
+  const [commentContent, setCommentContent] = useState('');
+  
+  // Text expansion states
+  const [isExcerptExpanded, setIsExcerptExpanded] = useState(false);
+  const [isContentExpanded, setIsContentExpanded] = useState(false);
 
-  // Sample additional images for the article
-  const additionalImages = [
-    "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-    "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80",
-    "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
-  ];
+  // Truncate text utility
+  const truncateText = (text: string, maxLength: number = 150): string => {
+    if (!text || text.length <= maxLength) return text;
+    return text.slice(0, maxLength) + '...';
+  };
 
-  // Trending articles for sidebar
-  const trendingArticles = [
-    "AI-Powered Learning Platforms Transform Education",
-    "Women Leading Educational Innovation Across Africa",
-    "Digital Literacy for Rural Communities",
-    "Mental Health Support in Universities",
-    "Traditional Wisdom Meets Modern Learning",
-    "The Rise of EdTech Startups in Africa",
-    "Climate Change Education for Young Minds",
-    "Blockchain Technology in Academic Credentials",
-    "Virtual Reality in Medical Education",
-    "Microlearning Platforms Boost Engagement"
-  ];
+  // Handle like increment
+  const handleLike = async () => {
+    if (!article || likeLoading) return;
+    
+    setLikeLoading(true);
+    try {
+      const response = await likesApi.incrementLike(article._id || article.id);
+      if (response.success) {
+        setLikeCount(response.likeCount || 0);
+      }
+    } catch (error) {
+      console.error('Error incrementing like:', error);
+    } finally {
+      setLikeLoading(false);
+    }
+  };
+
+  // Handle unlike (decrement)
+  const handleUnlike = async () => {
+    if (!article || likeLoading || likeCount <= 0) return;
+    
+    setLikeLoading(true);
+    try {
+      const response = await likesApi.decrementLike(article._id || article.id);
+      if (response.success) {
+        setLikeCount(response.likeCount || 0);
+      }
+    } catch (error) {
+      console.error('Error decrementing like:', error);
+    } finally {
+      setLikeLoading(false);
+    }
+  };
+
+  // Handle comment submission
+  const handleCommentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!article || commentLoading || !commentContent) return;
+    
+    setCommentLoading(true);
+    try {
+      const response = await commentsApi.createComment(article._id || article.id, {
+        name: 'Anonymous',
+        email: 'anonymous@example.com',
+        content: commentContent
+      });
+      if (response.success && response.data) {
+        setComments(prev => [response.data!, ...prev].slice(0, 3)); // Keep only latest 3
+        setCommentCount(prev => prev + 1);
+        setCommentContent('');
+        setShowCommentForm(false);
+      }
+    } catch (error) {
+      console.error('Error creating comment:', error);
+    } finally {
+      setCommentLoading(false);
+    }
+  };
+
+  // Load likes and comments data
+  const loadLikesAndComments = async (articleId: string) => {
+    try {
+      // Load like count
+      const likeResponse = await likesApi.getLikeCount(articleId);
+      if (likeResponse.success && likeResponse.data) {
+        setLikeCount(likeResponse.data.likeCount);
+      }
+
+      // Load comments (latest 3)
+      const commentsResponse = await commentsApi.getComments(articleId, { limit: 3 });
+      if (commentsResponse.success && commentsResponse.data) {
+        setComments(commentsResponse.data.comments);
+        setCommentCount(commentsResponse.data.totalComments);
+      }
+    } catch (error) {
+      console.error('Error loading likes and comments:', error);
+    }
+  };
+
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    
     if (id) {
-      const foundArticle = getArticleById(id);
-      if (foundArticle) {
-        setArticle(foundArticle);
-        
-        const related = articles
-          .filter(a => a.category === foundArticle.category && a.id !== foundArticle.id && a.status === 'published')
-          .slice(0, 4);
-        setRelatedArticles(related);
-      } else {
-        const fallbackArticle = articles.length > 0 ? articles[0] : null;
-        if (fallbackArticle) {
-          setArticle(fallbackArticle);
-          const related = articles
-            .filter(a => a.category === fallbackArticle.category && a.id !== fallbackArticle.id && a.status === 'published')
-            .slice(0, 4);
-          setRelatedArticles(related);
-        }
-      }
+      loadArticle(id);
     }
-    setIsLoading(false);
-  }, [id, getArticleById, articles]);
+  }, [id]);
+
+  const loadArticle = async (articleId: string) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      const response = await publicApi.getArticle(articleId);
+      
+      if (response.success && response.data) {
+        setArticle(response.data);
+        
+        // Load likes and comments for this article
+        loadLikesAndComments(response.data._id || response.data.id);
+      } else {
+        setError(response.message || 'Article not found');
+      }
+    } catch (error) {
+      console.error('Error loading article:', error);
+      setError('Failed to load article');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const formatContent = (content: string) => {
     if (!content) return '';
@@ -82,12 +167,12 @@ export default function ArticlePage({ isDarkMode }: ArticlePageProps) {
     );
   }
 
-  if (!article) {
+  if (error || !article) {
     return (
       <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'}`}>
         <div className="max-w-4xl mx-auto px-6 py-20 text-center">
           <h1 className="text-3xl font-bold mb-6">Article Not Found</h1>
-          <p className="mb-8">The article you're looking for doesn't exist or has been removed.</p>
+          <p className="mb-8">{error || 'The article you\'re looking for doesn\'t exist or has been removed.'}</p>
           <button 
             onClick={() => {
               navigate('/magazine');
@@ -119,11 +204,13 @@ export default function ArticlePage({ isDarkMode }: ArticlePageProps) {
             <span className="font-medium">Back to Magazine</span>
           </button>
 
-          <div className="mb-6">
-            <span className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-full font-bold text-sm shadow-lg hover:shadow-xl transition-all duration-300">
-              {article.category}
-            </span>
-          </div>
+          {(article.category || article.categoryName) && (
+            <div className="mb-6">
+              <span className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-full font-bold text-sm shadow-lg hover:shadow-xl transition-all duration-300">
+                {article.category || article.categoryName}
+              </span>
+            </div>
+          )}
 
           <h1 className={`text-3xl lg:text-4xl font-bold leading-tight mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
             {article.title}
@@ -172,10 +259,8 @@ export default function ArticlePage({ isDarkMode }: ArticlePageProps) {
 
       {/* Main Content Area */}
       <main className={`py-8 ${isDarkMode ? 'bg-gray-900' : 'bg-white'} transition-colors`}>
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid lg:grid-cols-4 gap-8">
-            {/* Article Content - 3/4 width */}
-            <div className="lg:col-span-3">
+        <div className="max-w-4xl mx-auto px-6">
+          <div>
               {/* Featured Image */}
               {article.featuredImage && (
                 <div className="mb-8">
@@ -197,62 +282,54 @@ export default function ArticlePage({ isDarkMode }: ArticlePageProps) {
 
               {/* Excerpt */}
               {article.excerpt && (
-                <div className="mb-8">
+                <div className="mb-8 space-y-2">
                   <p className={`text-lg leading-relaxed font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                    {article.excerpt}
+                    {isExcerptExpanded ? article.excerpt : truncateText(article.excerpt, 200)}
                   </p>
+                  {article.excerpt.length > 200 && (
+                    <button
+                      onClick={() => setIsExcerptExpanded(!isExcerptExpanded)}
+                      className={`inline-flex items-center space-x-1 text-sm font-medium transition-colors ${
+                        isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'
+                      }`}
+                    >
+                      <span>{isExcerptExpanded ? 'Show less' : 'Show more'}</span>
+                      {isExcerptExpanded ? (
+                        <ChevronUp className="w-4 h-4" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4" />
+                      )}
+                    </button>
+                  )}
                 </div>
               )}
 
-              {/* Article Content with Mixed Images */}
+              {/* Article Content */}
               <div className={`prose prose-lg max-w-none ${isDarkMode ? 'prose-invert' : ''}`}>
-                <div className={`leading-relaxed ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                  {/* First paragraph */}
-                  <p className="mb-6">
-                    {article.content ? article.content.split('\n\n')[0] : 'The landscape of education in Africa is undergoing a revolutionary transformation, driven by cutting-edge technology and innovative approaches that are reshaping how students learn and teachers teach across the continent.'}
-                  </p>
-
-                  {/* First additional image */}
-                  <div className="my-8">
-                    <img 
-                      src={additionalImages[0]}
-                      alt="Educational technology in action"
-                      className="w-full h-64 object-cover rounded-xl shadow-lg"
-                    />
-                  </div>
-
-                  {/* Second paragraph */}
-                  <p className="mb-6">
-                    From AI-powered learning platforms that adapt to individual student needs to mobile-first solutions reaching the most remote communities, technology is breaking down traditional barriers to quality education. Universities and schools across Kenya, Rwanda, Ghana, and Nigeria are implementing innovative digital tools that enhance learning outcomes and create new opportunities for academic excellence.
-                  </p>
-
-                  {/* Second additional image */}
-                  <div className="my-8">
-                    <img 
-                      src={additionalImages[1]}
-                      alt="Students using modern technology"
-                      className="w-full h-64 object-cover rounded-xl shadow-lg"
-                    />
-                  </div>
-
-                  {/* Third paragraph */}
-                  <p className="mb-6">
-                    The integration of virtual reality, augmented reality, and interactive learning environments is creating immersive educational experiences that were unimaginable just a few years ago. Students can now take virtual field trips to historical sites, conduct complex scientific experiments in simulated laboratories, and collaborate with peers across continents in real-time.
-                  </p>
-
-                  {/* Third additional image */}
-                  <div className="my-8">
-                    <img 
-                      src={additionalImages[2]}
-                      alt="Modern learning environment"
-                      className="w-full h-64 object-cover rounded-xl shadow-lg"
-                    />
-                  </div>
-
-                  {/* Final paragraph */}
-                  <p className="mb-6">
-                    As we look toward the future, the potential for educational technology in Africa is limitless. With continued investment in digital infrastructure, teacher training, and innovative pedagogical approaches, the continent is positioned to become a global leader in educational excellence and technological innovation.
-                  </p>
+                <div className="space-y-2">
+                  <div 
+                    className={`leading-relaxed ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}
+                    dangerouslySetInnerHTML={{ 
+                      __html: formatContent(
+                        isContentExpanded ? (article.content || '') : truncateText(article.content || '', 500)
+                      ) 
+                    }}
+                  />
+                  {(article.content || '').length > 500 && (
+                    <button
+                      onClick={() => setIsContentExpanded(!isContentExpanded)}
+                      className={`inline-flex items-center space-x-1 text-sm font-medium transition-colors ${
+                        isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'
+                      }`}
+                    >
+                      <span>{isContentExpanded ? 'Show less' : 'Show more'}</span>
+                      {isContentExpanded ? (
+                        <ChevronUp className="w-4 h-4" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4" />
+                      )}
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -280,119 +357,116 @@ export default function ArticlePage({ isDarkMode }: ArticlePageProps) {
               <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-6">
-                    <button className="flex items-center space-x-2 text-gray-500 hover:text-red-600 transition-colors">
-                      <Heart className="w-5 h-5" />
-                      <span>Like</span>
-                    </button>
-                    <button className="flex items-center space-x-2 text-gray-500 hover:text-blue-600 transition-colors">
-                      <Share2 className="w-5 h-5" />
-                      <span>Share</span>
-                    </button>
+                    <div className="flex items-center space-x-2">
+                      <button 
+                        onClick={handleLike}
+                        disabled={likeLoading}
+                        className="flex items-center space-x-2 text-gray-500 hover:text-red-600 transition-colors disabled:opacity-50"
+                      >
+                        <Heart className="w-5 h-5" />
+                        <span>Like ({likeCount})</span>
+                      </button>
+                      {likeCount > 0 && (
+                        <button 
+                          onClick={handleUnlike}
+                          disabled={likeLoading}
+                          className="text-sm text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
+                        >
+                          Unlike
+                        </button>
+                      )}
+                    </div>
                     {article.allowComments && (
-                      <button className="flex items-center space-x-2 text-gray-500 hover:text-green-600 transition-colors">
+                      <button 
+                        onClick={() => setShowCommentForm(!showCommentForm)}
+                        className="flex items-center space-x-2 text-gray-500 hover:text-green-600 transition-colors"
+                      >
                         <MessageSquare className="w-5 h-5" />
-                        <span>Comment</span>
+                        <span>Comment ({commentCount})</span>
                       </button>
                     )}
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Trending Articles Sidebar - 1/4 width */}
-            <div className="lg:col-span-1">
-              <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'} rounded-2xl p-6 sticky top-4 border`}>
-                <div className="flex items-center space-x-2 mb-6">
-                  <TrendingUp className="w-5 h-5 text-red-600" style={{ color: '#F21717' }} />
-                  <h3 className={`text-lg font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                    Trending Articles
-                  </h3>
+              {/* Comment Form */}
+              {showCommentForm && article.allowComments && (
+                <div className="mt-6 p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
+                  <h4 className={`text-lg font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    Add a Comment
+                  </h4>
+                  <form onSubmit={handleCommentSubmit} className="space-y-4">
+                    <textarea
+                      placeholder="Write your comment here..."
+                      value={commentContent}
+                      onChange={(e) => setCommentContent(e.target.value)}
+                      rows={4}
+                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 resize-none ${
+                        isDarkMode 
+                          ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' 
+                          : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
+                      }`}
+                      required
+                    />
+                    <div className="flex items-center justify-between">
+                      <button
+                        type="button"
+                        onClick={() => setShowCommentForm(false)}
+                        className={`px-4 py-2 rounded-lg transition-colors ${
+                          isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'
+                        }`}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={commentLoading || !commentContent}
+                        className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Send className="w-4 h-4" />
+                        <span>{commentLoading ? 'Posting...' : 'Post Comment'}</span>
+                      </button>
+                    </div>
+                  </form>
                 </div>
+              )}
 
-                <div className="space-y-0">
-                  {trendingArticles.slice(0, 8).map((title, index) => (
-                    <React.Fragment key={index}>
-                      <div className="group cursor-pointer py-3">
-                        <div className="flex items-start space-x-3">
-                          <div className="flex-shrink-0 w-6 h-6 bg-red-600 text-white rounded-full flex items-center justify-center text-xs font-bold" style={{ backgroundColor: '#F21717' }}>
-                            {index + 1}
-                          </div>
-                          <h4 className={`text-sm font-medium leading-tight group-hover:text-red-600 transition-colors line-clamp-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                            {title}
-                          </h4>
+              {/* Comments Section */}
+              {comments.length > 0 && (
+                <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+                  <h4 className={`text-lg font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    Latest Comments ({commentCount})
+                  </h4>
+                  <div className="space-y-4">
+                    {comments.map((comment, index) => (
+                      <div key={comment._id} className={`p-4 rounded-lg ${isDarkMode ? 'bg-gray-800' : 'bg-gray-50'}`}>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                            Anonymous
+                          </span>
+                          <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                            {new Date(comment.createdAt).toLocaleDateString()}
+                          </span>
                         </div>
+                        <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                          {comment.content}
+                        </p>
                       </div>
-                      {index < trendingArticles.slice(0, 8).length - 1 && (
-                        <div className={`border-b ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}></div>
-                      )}
-                    </React.Fragment>
-                  ))}
+                    ))}
+                  </div>
+                  {commentCount > 3 && (
+                    <div className="mt-4 text-center">
+                      <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                        Showing latest 3 of {commentCount} comments
+                      </span>
+                    </div>
+                  )}
                 </div>
-              </div>
-            </div>
+              )}
           </div>
         </div>
       </main>
 
-      {/* Related Articles - Horizontal Layout */}
-      {relatedArticles.length > 0 && (
-        <section className={`py-12 ${isDarkMode ? 'bg-gray-800' : 'bg-gray-50'} transition-colors`}>
-          <div className="max-w-7xl mx-auto px-6">
-            <h2 className={`text-2xl lg:text-3xl font-bold mb-8 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-              Related Articles
-            </h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {relatedArticles.map((relatedArticle, index) => (
-                <div 
-                  key={index}
-                  className={`group cursor-pointer ${isDarkMode ? 'bg-gray-900 border-gray-700' : 'bg-white border-gray-100'} rounded-xl overflow-hidden shadow-lg border hover:shadow-xl transition-all duration-300`}
-                  onClick={() => {
-                    navigate(`/article/${relatedArticle.id}`);
-                    window.scrollTo(0, 0);
-                  }}
-                >
-                  <div className="relative h-40 overflow-hidden">
-                    <img 
-                      src={relatedArticle.featured_image || relatedArticle.featuredImage}
-                      alt={relatedArticle.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      onError={(e) => {
-                        e.currentTarget.src = 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80';
-                      }}
-                    />
-                    <div className="absolute top-3 left-3">
-                      <span className="inline-flex items-center px-3 py-1 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-full font-semibold text-xs shadow-md">
-                        {relatedArticle.category}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="p-4">
-                    <h3 className={`text-base font-bold mb-2 leading-tight group-hover:text-red-600 transition-colors ${isDarkMode ? 'text-white' : 'text-gray-900'} line-clamp-2`}>
-                      {relatedArticle.title}
-                    </h3>
-                    <p className={`text-sm leading-relaxed mb-3 line-clamp-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                      {relatedArticle.excerpt}
-                    </p>
-
-                    <div className="flex items-center justify-between text-xs">
-                      <span className={`flex items-center space-x-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                        <User className="w-3 h-3" />
-                        <span>{relatedArticle.author}</span>
-                      </span>
-                      <span className={`flex items-center space-x-1 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                        <Calendar className="w-3 h-3" />
-                        <span>{new Date(relatedArticle.publishDate).toLocaleDateString()}</span>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
 
       <Footer isDarkMode={isDarkMode} />
     </div>
