@@ -212,12 +212,12 @@ export default function ArticlePage({ isDarkMode }: ArticlePageProps) {
             </div>
           )}
 
-          <h1 className={`text-3xl lg:text-4xl font-bold leading-tight mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+          <h1 className={`text-3xl lg:text-4xl font-bold leading-tight mb-4 break-words ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
             {article.title}
           </h1>
           
           {article.subtitle && (
-            <h2 className={`text-lg lg:text-xl mb-6 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+            <h2 className={`text-lg lg:text-xl mb-6 break-words ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
               {article.subtitle}
             </h2>
           )}
@@ -283,7 +283,7 @@ export default function ArticlePage({ isDarkMode }: ArticlePageProps) {
               {/* Excerpt */}
               {article.excerpt && (
                 <div className="mb-8 space-y-2">
-                  <p className={`text-lg leading-relaxed font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                  <p className={`text-lg leading-relaxed font-medium break-words overflow-wrap-anywhere ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                     {isExcerptExpanded ? article.excerpt : truncateText(article.excerpt, 200)}
                   </p>
                   {article.excerpt.length > 200 && (
@@ -308,7 +308,7 @@ export default function ArticlePage({ isDarkMode }: ArticlePageProps) {
               <div className={`prose prose-lg max-w-none ${isDarkMode ? 'prose-invert' : ''}`}>
                 <div className="space-y-2">
                   <div 
-                    className={`leading-relaxed ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}
+                    className={`leading-relaxed break-words overflow-wrap-anywhere ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}
                     dangerouslySetInnerHTML={{ 
                       __html: formatContent(
                         isContentExpanded ? (article.content || '') : truncateText(article.content || '', 500)

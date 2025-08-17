@@ -8,15 +8,63 @@ interface EditorsPickSectionProps {
 }
 
 export default function EditorsPickSection({ isDarkMode }: EditorsPickSectionProps) {
-  const { articles } = usePublicData();
+  const { editorsPickArticles, isLoadingEditorsPick } = usePublicData();
   const navigate = useNavigate();
 
-  // Get trending articles as editor's pick
-  const editorsPickArticles = articles.filter(article => article.trending).slice(0, 4);
+  // Show loading state while fetching
+  if (isLoadingEditorsPick) {
+    return (
+      <section className={`py-4 sm:py-6 lg:py-8 ${isDarkMode ? 'bg-gray-900' : 'bg-white'} transition-colors`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="mb-8 sm:mb-10 lg:mb-12 relative">
+            <div className="flex items-end">
+              <h2 className={`text-xl sm:text-2xl lg:text-3xl font-normal ${isDarkMode ? 'text-white' : 'text-gray-900'} mr-4`}>
+                Editor's Pick
+              </h2>
+              <div className="flex-1 h-0.5 bg-blue-600 mb-1 sm:mb-2"></div>
+            </div>
+          </div>
+          
+          {/* Loading skeleton - Large card layout like in image */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
+            {[...Array(4)].map((_, index) => (
+              <div key={index} className={`${isDarkMode ? 'bg-gray-800' : 'bg-white'} rounded-xl border shadow-lg animate-pulse overflow-hidden`}>
+                <div className={`w-full h-48 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'}`}></div>
+                <div className="p-6">
+                  <div className={`h-6 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded w-3/4 mb-3`}></div>
+                  <div className={`h-4 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded w-full mb-1`}></div>
+                  <div className={`h-4 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded w-2/3 mb-4`}></div>
+                  <div className={`h-3 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded w-1/2`}></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    );
+  }
 
-  // Only show if we have real editor's pick articles
-  if (editorsPickArticles.length === 0) {
-    return null; // Hide the entire section if no editor's pick articles
+  // Show "no featured articles" message only when not loading and no articles exist
+  if (!isLoadingEditorsPick && editorsPickArticles.length === 0) {
+    return (
+      <section className={`py-4 sm:py-6 lg:py-8 ${isDarkMode ? 'bg-gray-900' : 'bg-white'} transition-colors`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="mb-8 sm:mb-10 lg:mb-12 relative">
+            <div className="flex items-end">
+              <h2 className={`text-xl sm:text-2xl lg:text-3xl font-normal ${isDarkMode ? 'text-white' : 'text-gray-900'} mr-4`}>
+                Editor's Pick
+              </h2>
+              <div className="flex-1 h-0.5 bg-blue-600 mb-1 sm:mb-2"></div>
+            </div>
+          </div>
+          
+          <div className={`text-center py-12 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+            <p className="text-lg">No featured articles available at the moment.</p>
+            <p className="text-sm mt-2">Check back later for our editor's latest picks!</p>
+          </div>
+        </div>
+      </section>
+    );
   }
 
   const handleArticleClick = (article: any) => {
@@ -39,90 +87,82 @@ export default function EditorsPickSection({ isDarkMode }: EditorsPickSectionPro
           </div>
         </div>
 
-        {/* Four Articles Grid - Enhanced Layout */}
+        {/* Editor's Pick Articles Grid - Large cards like in image */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
           {editorsPickArticles.slice(0, 4).map((article, index) => (
-            <div 
-              key={index}
-              className={`group cursor-pointer ${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'} rounded-2xl overflow-hidden shadow-lg border hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2`}
+            <div
+              key={article._id || article.id || index}
+              className={`group cursor-pointer transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 ${
+                isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+              } rounded-xl border overflow-hidden`}
               onClick={() => handleArticleClick(article)}
             >
-              {/* Article Image - Enhanced with overlay effects */}
+              {/* Article Image - Large image like in the design */}
               <div className="relative overflow-hidden">
-                <img 
+                <img
                   src={article.featured_image || article.featuredImage}
                   alt={article.title}
-                  className="w-full h-56 sm:h-64 lg:h-56 xl:h-64 object-cover group-hover:scale-110 transition-transform duration-700"
+                  className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-300"
                   onError={(e) => {
                     e.currentTarget.src = 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80';
                   }}
                 />
                 
-                {/* Gradient Overlay for better text readability */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                
-                {/* Category Badge - Enhanced styling */}
-                {(article.category) && (
+                {/* Category Badge on image - like in the design */}
+                {(article.categoryName || article.category) && (
                   <div className="absolute top-4 left-4">
-                    <span className="inline-flex items-center px-3 py-1.5 border-2 border-white text-white rounded-lg text-xs font-bold backdrop-blur-sm bg-black/50 whitespace-nowrap">
-                      { article.category}
+                    <span className="inline-flex items-center px-3 py-1.5 bg-gray-900/70 backdrop-blur-sm text-white rounded text-xs font-bold">
+                      {article.categoryName || article.category}
                     </span>
                   </div>
                 )}
-                
-                {/* Views Badge - Top right */}
               </div>
 
-              {/* Article Content - Enhanced layout */}
+              {/* Article Content below image */}
               <div className="p-6">
-                {/* Title */}
-                <h3 className={`text-lg font-bold mb-3 leading-tight group-hover:text-red-600 transition-colors duration-300 ${isDarkMode ? 'text-white' : 'text-gray-900'} line-clamp-2`}
-                    style={{ 
-                      textDecorationColor: '#F21717',
-                      textUnderlineOffset: '6px'
-                    }}>
+                {/* Article Title */}
+                <h3 className={`text-lg font-bold mb-3 leading-tight line-clamp-2 group-hover:text-red-600 transition-colors ${
+                  isDarkMode ? 'text-white' : 'text-gray-900'
+                }`}>
                   {article.title}
                 </h3>
-                
-                {/* Excerpt/Intro - New addition */}
-                <p className={`text-sm leading-relaxed mb-4 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} line-clamp-2`}>
-                  {article.excerpt}
-                </p>
-                
-                {/* Author and Meta Info */}
-                <div className="flex items-center justify-between mb-4">
+
+                {/* Article Description/Excerpt */}
+                {article.excerpt && (
+                  <p className={`text-sm leading-relaxed mb-4 line-clamp-2 ${
+                    isDarkMode ? 'text-gray-300' : 'text-gray-600'
+                  }`}>
+                    {article.excerpt}
+                  </p>
+                )}
+
+                {/* Author and Read Time */}
+                <div className="flex items-center justify-between text-xs">
                   {article.author && (
-                    <div className="flex items-center space-x-2">
-                      <User className="w-4 h-4 text-gray-400" />
-                      <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                    <div className="flex items-center space-x-1">
+                      <User className="w-3 h-3 text-gray-400" />
+                      <span className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>
                         {article.author}
                       </span>
                     </div>
                   )}
-                  {article.readTime && (
-                    <div className="flex items-center space-x-2">
-                      <Clock className="w-4 h-4 text-gray-400" />
-                      <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                        {article.readTime}
+
+                  {(article.readTime || article.content) && (
+                    <div className="flex items-center space-x-1">
+                      <Clock className="w-3 h-3 text-gray-400" />
+                      <span className={isDarkMode ? 'text-gray-400' : 'text-gray-500'}>
+                        {article.readTime || `${Math.max(1, Math.ceil((article.content?.split(' ').length || 0) / 200))} min read`}
                       </span>
                     </div>
                   )}
                 </div>
-                
-                {/* Read More Button */}
-                <button 
-                  className="text-red-600 hover:text-red-700 transition-colors text-sm font-semibold flex items-center space-x-1 group/btn" 
-                  style={{ color: '#F21717' }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleArticleClick(article);
-                  }}
-                >
-                  <span>Read Article</span>
-                  <svg className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
+
+                {/* Read Article Link */}
+                <div className="mt-4">
+                  <span className="text-red-600 hover:text-red-700 transition-colors text-sm font-semibold">
+                    Read Article →
+                  </span>
+                </div>
               </div>
             </div>
           ))}

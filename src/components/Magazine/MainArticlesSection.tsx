@@ -8,16 +8,42 @@ interface MainArticlesSectionProps {
 }
 
 export default function MainArticlesSection({ isDarkMode }: MainArticlesSectionProps) {
-  const { articles } = usePublicData();
+  const { mainArticle, secondMainArticle, isLoadingMainArticles } = usePublicData();
   const navigate = useNavigate();
 
-  // Get the first two featured articles as main articles
-  const featuredArticles = articles.filter(article => article.featured);
-  const mainArticle = featuredArticles[0] || null;
-  const secondMainArticle = featuredArticles[1] || null;
+  // Show loading state while fetching
+  if (isLoadingMainArticles) {
+    return (
+      <section className={`py-3 sm:py-4 lg:py-6 xl:py-8 ${isDarkMode ? 'bg-gray-900' : 'bg-white'} transition-colors`}>
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+            {/* Main article skeleton */}
+            <div className="lg:col-span-3">
+              <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'} rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-6 h-64 animate-pulse`}>
+                <div className="flex flex-col lg:grid lg:grid-cols-5 gap-3 sm:gap-4 lg:gap-6 h-full">
+                  <div className="lg:col-span-3 space-y-3">
+                    <div className={`h-6 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded w-3/4`}></div>
+                    <div className={`h-4 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded w-full`}></div>
+                    <div className={`h-4 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded w-2/3`}></div>
+                  </div>
+                  <div className={`lg:col-span-2 ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded-lg h-full`}></div>
+                </div>
+              </div>
+            </div>
+            {/* Second article skeleton */}
+            <div className="lg:col-span-1">
+              <div className={`${isDarkMode ? 'bg-gray-800' : 'bg-gray-100'} rounded-lg sm:rounded-xl lg:rounded-2xl h-28 sm:h-32 lg:h-80 animate-pulse`}>
+                <div className={`w-full h-full ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'} rounded-lg`}></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
-  // Show empty state if no main articles
-  if (!mainArticle && !secondMainArticle) {
+  // Show empty state only when not loading and no main articles exist
+  if (!isLoadingMainArticles && !mainArticle && !secondMainArticle) {
     return (
       <section className={`py-8 sm:py-12 lg:py-16 ${isDarkMode ? 'bg-gray-900' : 'bg-white'} transition-colors`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -80,18 +106,18 @@ export default function MainArticlesSection({ isDarkMode }: MainArticlesSectionP
               className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'} rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-6 shadow-lg border transition-colors group cursor-pointer hover:shadow-xl`}
               onClick={handleMainArticleClick}
             >
-              <div className="flex flex-col lg:grid lg:grid-cols-5 gap-3 sm:gap-4 lg:gap-6 items-start h-full">
+              <div className="flex flex-col lg:grid lg:grid-cols-5 gap-4 sm:gap-6 lg:gap-8 items-start h-full">
                 {/* Article Content - Full width on mobile, 3 columns on desktop */}
-                <div className="lg:col-span-3 flex flex-col justify-between h-full order-2 lg:order-1">
+                <div className="lg:col-span-3 flex flex-col justify-between h-full order-2 lg:order-1 pr-2 sm:pr-4 lg:pr-0">
                   <div>
-                    <h1 className={`text-base sm:text-lg lg:text-xl xl:text-2xl font-bold leading-tight mb-2 sm:mb-3 lg:mb-4 group-hover:underline transition-all duration-300 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
+                    <h1 className={`text-base sm:text-lg lg:text-xl xl:text-2xl font-bold leading-tight mb-2 sm:mb-3 lg:mb-4 group-hover:underline transition-all duration-300 ${isDarkMode ? 'text-white' : 'text-gray-900'} line-clamp-2`}
                         style={{ 
                           textDecorationColor: '#F21717',
                           textUnderlineOffset: '6px'
                         }}>
                       {mainArticle?.title}
                     </h1>
-                    <p className={`text-xs sm:text-sm lg:text-sm leading-relaxed mb-3 sm:mb-4 lg:mb-6 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} line-clamp-2 sm:line-clamp-3 lg:line-clamp-none`}>
+                    <p className={`text-xs sm:text-sm lg:text-sm leading-relaxed mb-3 sm:mb-4 lg:mb-6 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} line-clamp-3`}>
                       {mainArticle?.excerpt}
                     </p>
                   </div>
@@ -99,7 +125,7 @@ export default function MainArticlesSection({ isDarkMode }: MainArticlesSectionP
                   {/* Category and Author */}
                   <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-3 lg:space-x-4">
                     {(mainArticle?.categoryName || mainArticle?.category) && (
-                      <span className={`inline-flex items-center px-3 py-1.5 border-2 border-red-500 rounded-lg text-xs font-bold whitespace-nowrap ${isDarkMode ? 'border-red-500 text-red-400 bg-red-900/20' : 'border-red-500 text-red-600 bg-red-50'}`}>
+                      <span className={`inline-flex items-center px-3 py-1.5 border-2 border-red-500 rounded-lg text-xs font-bold truncate max-w-full ${isDarkMode ? 'border-red-500 text-red-400 bg-red-900/20' : 'border-red-500 text-red-600 bg-red-50'}`}>
                         {mainArticle?.categoryName || mainArticle?.category}
                       </span>
                     )}
@@ -138,18 +164,18 @@ export default function MainArticlesSection({ isDarkMode }: MainArticlesSectionP
                 className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'} rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-6 shadow-lg border transition-colors group cursor-pointer hover:shadow-xl`}
                 onClick={handleMainArticleClick}
               >
-                <div className="flex flex-col lg:grid lg:grid-cols-5 gap-3 sm:gap-4 lg:gap-6 items-start h-full">
+                <div className="flex flex-col lg:grid lg:grid-cols-5 gap-4 sm:gap-6 lg:gap-8 items-start h-full">
                   {/* Article Content - Full width on mobile, 3 columns on desktop */}
-                  <div className="lg:col-span-3 flex flex-col justify-between h-full order-2 lg:order-1">
+                  <div className="lg:col-span-3 flex flex-col justify-between h-full order-2 lg:order-1 pr-2 sm:pr-4 lg:pr-0">
                     <div>
-                      <h1 className={`text-base sm:text-lg lg:text-xl xl:text-2xl font-bold leading-tight mb-2 sm:mb-3 lg:mb-4 group-hover:underline transition-all duration-300 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}
+                      <h1 className={`text-base sm:text-lg lg:text-xl xl:text-2xl font-bold leading-tight mb-2 sm:mb-3 lg:mb-4 group-hover:underline transition-all duration-300 ${isDarkMode ? 'text-white' : 'text-gray-900'} line-clamp-2`}
                           style={{ 
                             textDecorationColor: '#F21717',
                             textUnderlineOffset: '6px'
                           }}>
                         {mainArticle?.title}
                       </h1>
-                      <p className={`text-xs sm:text-sm lg:text-sm leading-relaxed mb-3 sm:mb-4 lg:mb-6 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} line-clamp-2 sm:line-clamp-3 lg:line-clamp-none`}>
+                      <p className={`text-xs sm:text-sm lg:text-sm leading-relaxed mb-3 sm:mb-4 lg:mb-6 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} line-clamp-3`}>
                         {mainArticle?.excerpt}
                       </p>
                     </div>
@@ -157,7 +183,7 @@ export default function MainArticlesSection({ isDarkMode }: MainArticlesSectionP
                     {/* Category and Author */}
                     <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-3 lg:space-x-4">
                       {(mainArticle?.categoryName || mainArticle?.category) && (
-                        <span className={`inline-flex items-center px-3 py-1.5 border-2 border-red-500 rounded-lg text-xs font-bold whitespace-nowrap ${isDarkMode ? 'border-red-500 text-red-400 bg-red-900/20' : 'border-red-500 text-red-600 bg-red-50'}`}>
+                        <span className={`inline-flex items-center px-3 py-1.5 border-2 border-red-500 rounded-lg text-xs font-bold truncate max-w-full ${isDarkMode ? 'border-red-500 text-red-400 bg-red-900/20' : 'border-red-500 text-red-600 bg-red-50'}`}>
                           {mainArticle?.categoryName || mainArticle?.category}
                         </span>
                       )}
@@ -209,7 +235,7 @@ export default function MainArticlesSection({ isDarkMode }: MainArticlesSectionP
 
                 {/* Second Article Content */}
                 <div className="p-2 sm:p-3 lg:p-4 flex-1 lg:flex-shrink-0 flex flex-col justify-center lg:justify-start">
-                  <h2 className={`text-xs sm:text-sm lg:text-sm xl:text-base font-bold mb-1 sm:mb-2 leading-tight group-hover:underline transition-all duration-300 ${isDarkMode ? 'text-white' : 'text-gray-900'} line-clamp-2 lg:line-clamp-none`}
+                  <h2 className={`text-xs sm:text-sm lg:text-sm xl:text-base font-bold mb-1 sm:mb-2 leading-tight group-hover:underline transition-all duration-300 ${isDarkMode ? 'text-white' : 'text-gray-900'} line-clamp-2`}
                       style={{ 
                         textDecorationColor: '#F21717',
                         textUnderlineOffset: '4px'
@@ -224,9 +250,16 @@ export default function MainArticlesSection({ isDarkMode }: MainArticlesSectionP
                     </p>
                   )}
                   
+                  {/* Description/Excerpt for second article */}
+                  {secondMainArticle?.excerpt && (
+                    <p className={`text-xs leading-relaxed mb-2 sm:mb-3 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} line-clamp-2`}>
+                      {secondMainArticle?.excerpt}
+                    </p>
+                  )}
+                  
                   <div className="space-y-1 mt-1">
                     {(secondMainArticle?.categoryName || secondMainArticle?.category) && (
-                      <span className={`inline-flex items-center px-3 py-1.5 border-2 border-red-500 rounded-lg text-xs font-bold whitespace-nowrap ${isDarkMode ? 'border-red-500 text-red-400 bg-red-900/20' : 'border-red-500 text-red-600 bg-red-50'}`}>
+                      <span className={`inline-flex items-center px-3 py-1.5 border-2 border-red-500 rounded-lg text-xs font-bold truncate max-w-full ${isDarkMode ? 'border-red-500 text-red-400 bg-red-900/20' : 'border-red-500 text-red-600 bg-red-50'}`}>
                         {secondMainArticle?.categoryName || secondMainArticle?.category}
                       </span>
                     )}

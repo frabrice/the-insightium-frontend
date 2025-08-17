@@ -40,11 +40,12 @@ export default function EditorsPickManagement({ isDarkMode }: EditorsPickManagem
     try {
       setLoading(true);
       
-      // Load Editor's Pick articles (max 3)
+      // Load Editor's Pick articles (max 4 latest created)
       const editorsPickResponse = await articlesApi.getArticles({ 
         editors_pick: true, 
-        limit: 3, 
-        status: 'published' 
+        limit: 4, 
+        status: 'published',
+        sort: 'createdAt'
       });
       
       // Load available articles (not Editor's Pick)
@@ -71,8 +72,8 @@ export default function EditorsPickManagement({ isDarkMode }: EditorsPickManagem
   };
 
   const handleAddToEditorsPick = async (articleId: string) => {
-    if (editorsPickArticles.length >= 3) {
-      showError('You can only have 3 Editor\'s Pick articles at a time');
+    if (editorsPickArticles.length >= 4) {
+      showError('You can only have 4 Editor\'s Pick articles at a time');
       return;
     }
 
@@ -132,13 +133,13 @@ export default function EditorsPickManagement({ isDarkMode }: EditorsPickManagem
             Editor's Pick
           </h1>
           <p className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-            Curate the best articles handpicked by our editorial team (max 3 articles)
+            Curate the best articles handpicked by our editorial team (max 4 articles)
           </p>
         </div>
         <div className="flex items-center space-x-2">
           <Award className="w-4 h-4 text-blue-600" />
           <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-            {editorsPickArticles.length}/3 slots used
+            {editorsPickArticles.length}/4 slots used
           </span>
           <button
             onClick={loadArticles}
@@ -263,7 +264,7 @@ export default function EditorsPickManagement({ isDarkMode }: EditorsPickManagem
             </h3>
             <p className={`text-xs mt-1 ${isDarkMode ? 'text-blue-400' : 'text-blue-700'}`}>
               Editor's Pick articles are carefully curated content that represents the best of our editorial standards. 
-              These articles appear in a special section and are highlighted with editorial badges. Only 3 articles can be featured at a time.
+              These articles appear in a special section and are highlighted with editorial badges. Only 4 articles can be featured at a time.
             </p>
           </div>
         </div>

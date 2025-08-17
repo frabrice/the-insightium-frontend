@@ -88,8 +88,6 @@ export default function TVShowForm({ isDarkMode, onClose, onSave, initialData, m
         id: initialData?.id || Date.now().toString()
       };
 
-      // Simulate saving (frontend only)
-      console.log('Episode saved (frontend only):', episodeData);
       onSave(episodeData);
   };
 

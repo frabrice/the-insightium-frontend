@@ -23,7 +23,6 @@ export default function Header({ isDarkMode, onToggleDarkMode }: HeaderProps) {
 
   const menuItems = [
     { name: 'About Us', path: '/about' },
-    { name: 'Our Team', path: '/team' }, 
     { name: 'Contact Us', path: '/contact' },
     { name: 'The Magazine', path: '/magazine' },
     { name: 'TV Show', path: '/tv-show' },

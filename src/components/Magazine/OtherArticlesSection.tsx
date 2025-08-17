@@ -9,11 +9,39 @@ interface OtherArticlesSectionProps {
 
 export default function OtherArticlesSection({ isDarkMode }: OtherArticlesSectionProps) {
   const [visibleArticles, setVisibleArticles] = useState(6);
-  const { articles, trendingArticles } = usePublicData();
+  const { regularArticles, trendingArticles, isLoadingRegularArticles } = usePublicData();
   const navigate = useNavigate();
 
-  // Get articles that are not featured (other articles)
-  const otherArticles = articles.filter(article => !article.featured);
+  // Use dedicated regular articles from the API
+  const otherArticles = regularArticles;
+
+  // Show loading state while fetching regular articles
+  if (isLoadingRegularArticles) {
+    return (
+      <section className="py-8 sm:py-12 lg:py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 lg:gap-12">
+            <div className="lg:col-span-2">
+              <div className="space-y-3 sm:space-y-4 lg:space-y-6">
+                {[...Array(3)].map((_, index) => (
+                  <div key={index} className="bg-white border border-gray-200 rounded-lg p-4 shadow-md animate-pulse">
+                    <div className="flex items-start space-x-4">
+                      <div className="w-20 h-20 bg-gray-200 rounded-lg"></div>
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                        <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                        <div className="h-3 bg-gray-200 rounded w-full"></div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   // Show empty state if no articles at all (this should rarely happen now that we have content)
   if (otherArticles.length === 0 && trendingArticles.length === 0) {

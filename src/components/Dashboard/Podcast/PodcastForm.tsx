@@ -62,31 +62,29 @@ export default function PodcastForm({ isDarkMode, onClose, onSave, initialData, 
   };
 
   const handleSave = async (status: string) => {
-      const episodeData = {
-        title: formData.title,
-        description: formData.description,
-        duration: formData.duration,
-        guest_name: formData.guestName,
-        series_id: formData.seriesId || null,
-        episode_number: formData.episodeNumber ? parseInt(formData.episodeNumber) : null,
-        image: formData.image,
-        youtube_url: formData.youtubeUrl,
-        spotify_url: formData.spotifyUrl,
-        apple_url: formData.appleUrl,
-        google_url: formData.googleUrl,
-        transcript: formData.transcript,
-        tags: formData.tags,
-        meta_description: formData.metaDescription,
-        featured: formData.featured,
-        status,
-        publish_date: formData.publishDate,
-        updated_at: new Date().toISOString(),
-        id: initialData?.id || Date.now().toString()
-      };
+    const episodeData = {
+      title: formData.title,
+      description: formData.description,
+      duration: formData.duration,
+      guest_name: formData.guestName,
+      series_id: formData.seriesId || null,
+      episode_number: formData.episodeNumber ? parseInt(formData.episodeNumber) : null,
+      image: formData.image,
+      youtube_url: formData.youtubeUrl,
+      spotify_url: formData.spotifyUrl,
+      apple_url: formData.appleUrl,
+      google_url: formData.googleUrl,
+      transcript: formData.transcript,
+      tags: formData.tags,
+      meta_description: formData.metaDescription,
+      featured: formData.featured,
+      status,
+      publish_date: formData.publishDate,
+      updated_at: new Date().toISOString(),
+      id: initialData?.id || Date.now().toString()
+    };
 
-      // Simulate saving (frontend only)
-      console.log('Podcast episode saved (frontend only):', episodeData);
-      onSave(episodeData);
+    onSave(episodeData);
   };
 
   const tabs = [
@@ -209,7 +207,7 @@ export default function PodcastForm({ isDarkMode, onClose, onSave, initialData, 
                     {/* Title */}
                     <div>
                       <label className={`block text-xs font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                        Episode Title *
+                        Episode Title
                       </label>
                       <input
                         type="text"
@@ -227,7 +225,7 @@ export default function PodcastForm({ isDarkMode, onClose, onSave, initialData, 
                     {/* Description */}
                     <div>
                       <label className={`block text-xs font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                        Description *
+                        Description
                       </label>
                       <textarea
                         value={formData.description}
@@ -246,7 +244,7 @@ export default function PodcastForm({ isDarkMode, onClose, onSave, initialData, 
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className={`block text-xs font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                          Duration *
+                          Duration
                         </label>
                         <input
                           type="text"
@@ -390,7 +388,7 @@ export default function PodcastForm({ isDarkMode, onClose, onSave, initialData, 
                 <div className="space-y-4">
                   <div>
                     <label className={`block text-xs font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                      Episode Cover Image URL *
+                      Episode Cover Image URL
                     </label>
                     <input
                       type="url"
@@ -428,7 +426,7 @@ export default function PodcastForm({ isDarkMode, onClose, onSave, initialData, 
                 <div className="space-y-4">
                   <div>
                     <label className={`block text-xs font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                      YouTube URL *
+                      YouTube URL
                     </label>
                     <input
                       type="url"

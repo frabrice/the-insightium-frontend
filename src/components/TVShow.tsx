@@ -96,19 +96,6 @@ export default function TVShow({ isDarkMode }: TVShowProps) {
 
   return (
     <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-white'} transition-colors`}>
-      {/* Header */}
-      <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-          <div className="text-center">
-            <h1 className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-2`}>
-              Latest TV Shows
-            </h1>
-            <p className={`text-lg ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              Watch our {latestTVShows.length} latest episodes
-            </p>
-          </div>
-        </div>
-      </div>
 
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">

@@ -6,6 +6,11 @@ interface PublicDataContextType {
   articles: PublicArticle[];
   featuredArticles: PublicArticle[];
   trendingArticles: PublicArticle[];
+  editorsPickArticles: PublicArticle[];
+  regularArticles: PublicArticle[];
+  dedicatedFeaturedArticles: PublicArticle[];
+  mainArticle: PublicArticle | null;
+  secondMainArticle: PublicArticle | null;
   getArticleById: (id: string) => PublicArticle | null;
   
   // Videos
@@ -25,6 +30,9 @@ interface PublicDataContextType {
   
   // Loading state
   isLoading: boolean;
+  isLoadingEditorsPick: boolean;
+  isLoadingMainArticles: boolean;
+  isLoadingFeaturedArticles: boolean;
   
   // Refresh data
   refreshData: () => Promise<void>;
@@ -49,7 +57,91 @@ export const PublicDataProvider: React.FC<PublicDataProviderProps> = ({ children
   const [videos, setVideos] = useState<PublicVideo[]>([]);
   const [tvShows, setTVShows] = useState<PublicTVShow[]>([]);
   const [podcasts, setPodcasts] = useState<PublicPodcast[]>([]);
+  const [editorsPickArticles, setEditorsPickArticles] = useState<PublicArticle[]>([]);
+  const [regularArticles, setRegularArticles] = useState<PublicArticle[]>([]);
+  const [dedicatedFeaturedArticles, setDedicatedFeaturedArticles] = useState<PublicArticle[]>([]);
+  const [mainArticle, setMainArticle] = useState<PublicArticle | null>(null);
+  const [secondMainArticle, setSecondMainArticle] = useState<PublicArticle | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingEditorsPick, setIsLoadingEditorsPick] = useState(true);
+  const [isLoadingMainArticles, setIsLoadingMainArticles] = useState(true);
+  const [isLoadingRegularArticles, setIsLoadingRegularArticles] = useState(true);
+  const [isLoadingFeaturedArticles, setIsLoadingFeaturedArticles] = useState(true);
+
+  const fetchRegularArticles = async () => {
+    setIsLoadingRegularArticles(true);
+    try {
+      const regularResponse = await publicApi.getRegularArticles({ limit: 20 });
+      
+      if (regularResponse.success && regularResponse.data) {
+        setRegularArticles(regularResponse.data.articles);
+      } else {
+        setRegularArticles([]);
+      }
+    } catch (error) {
+      console.error('Error fetching regular articles:', error);
+      setRegularArticles([]);
+    } finally {
+      setIsLoadingRegularArticles(false);
+    }
+  };
+
+  const fetchMainArticles = async () => {
+    setIsLoadingMainArticles(true);
+    try {
+      const mainArticlesResponse = await publicApi.getMainArticles();
+      
+      if (mainArticlesResponse.success && mainArticlesResponse.data) {
+        setMainArticle(mainArticlesResponse.data.mainArticle);
+        setSecondMainArticle(mainArticlesResponse.data.secondMainArticle);
+      } else {
+        setMainArticle(null);
+        setSecondMainArticle(null);
+      }
+    } catch (error) {
+      console.error('Error fetching main articles:', error);
+      setMainArticle(null);
+      setSecondMainArticle(null);
+    } finally {
+      setIsLoadingMainArticles(false);
+    }
+  };
+
+  const fetchEditorsPickArticles = async () => {
+    setIsLoadingEditorsPick(true);
+    try {
+      const editorsPickResponse = await publicApi.getEditorsPickArticles();
+      
+      if (editorsPickResponse.success && editorsPickResponse.data) {
+        setEditorsPickArticles(editorsPickResponse.data);
+      } else {
+        setEditorsPickArticles([]);
+      }
+    } catch (error) {
+      console.error('Error fetching editor\'s pick articles:', error);
+      setEditorsPickArticles([]);
+    } finally {
+      setIsLoadingEditorsPick(false);
+    }
+  };
+
+  const fetchFeaturedArticles = async () => {
+    setIsLoadingFeaturedArticles(true);
+    try {
+      const featuredResponse = await publicApi.getFeaturedArticles();
+      
+      if (featuredResponse.success && featuredResponse.data) {
+        setDedicatedFeaturedArticles(featuredResponse.data);
+      } else {
+        setDedicatedFeaturedArticles([]);
+      }
+    } catch (error) {
+      console.error('Error fetching featured articles:', error);
+      setDedicatedFeaturedArticles([]);
+    } finally {
+      setIsLoadingFeaturedArticles(false);
+    }
+  };
 
   const fetchAllData = async () => {
     setIsLoading(true);
@@ -103,11 +195,16 @@ export const PublicDataProvider: React.FC<PublicDataProviderProps> = ({ children
 
   useEffect(() => {
     fetchAllData();
+    fetchEditorsPickArticles();
+    fetchMainArticles();
+    fetchRegularArticles();
+    fetchFeaturedArticles();
   }, []);
 
   // Derived data
   const featuredArticles = articles.filter(article => article.featured);
   const trendingArticles = articles.filter(article => article.trending);
+  
   const magazineVideos = videos; // All videos are magazine videos in public context
   const tvShowVideos = tvShows; // All TV shows are videos in public context
   const podcastEpisodes = podcasts; // All podcasts are episodes in public context
@@ -130,7 +227,13 @@ export const PublicDataProvider: React.FC<PublicDataProviderProps> = ({ children
   };
 
   const refreshData = async () => {
-    await fetchAllData();
+    await Promise.all([
+      fetchAllData(),
+      fetchEditorsPickArticles(),
+      fetchMainArticles(),
+      fetchRegularArticles(),
+      fetchFeaturedArticles()
+    ]);
   };
 
   const value: PublicDataContextType = {
@@ -138,6 +241,11 @@ export const PublicDataProvider: React.FC<PublicDataProviderProps> = ({ children
     articles,
     featuredArticles,
     trendingArticles,
+    editorsPickArticles,
+    regularArticles,
+    dedicatedFeaturedArticles,
+    mainArticle,
+    secondMainArticle,
     getArticleById,
     
     // Videos
@@ -157,6 +265,10 @@ export const PublicDataProvider: React.FC<PublicDataProviderProps> = ({ children
     
     // Loading state
     isLoading,
+    isLoadingEditorsPick,
+    isLoadingMainArticles,
+    isLoadingRegularArticles,
+    isLoadingFeaturedArticles,
     
     // Refresh data
     refreshData

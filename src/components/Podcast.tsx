@@ -153,19 +153,6 @@ export default function Podcast({ isDarkMode }: PodcastProps) {
   if (podcastEpisodes.length === 0) {
     return (
       <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-white'} transition-colors`}>
-        {/* Header */}
-        <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b`}>
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
-            <div className="text-center">
-              <h1 className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-2`}>
-                Podcast Episodes
-              </h1>
-              <p className={`text-lg ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                Real conversations in real libraries
-              </p>
-            </div>
-          </div>
-        </div>
 
         {/* Empty State */}
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-16">
@@ -220,22 +207,6 @@ export default function Podcast({ isDarkMode }: PodcastProps) {
 
   return (
     <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-white'} transition-colors`}>
-      {/* Header */}
-      <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} border-b`}>
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
-          <div className="text-center">
-            <h1 className={`text-3xl font-bold ${isDarkMode ? 'text-white' : 'text-gray-900'} mb-2`}>
-              Latest Podcast Episodes
-            </h1>
-            <p className={`text-lg ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} mb-1`}>
-              Real conversations in real libraries
-            </p>
-            <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-              {latestEpisodes.length} latest episodes available
-            </p>
-          </div>
-        </div>
-      </div>
 
       {/* Content */}
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">

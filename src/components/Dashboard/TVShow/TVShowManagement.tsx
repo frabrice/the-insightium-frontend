@@ -450,6 +450,76 @@ export default function TVShowManagement({ isDarkMode }: TVShowManagementProps) 
         </div>
       )}
 
+      {/* Pagination Controls */}
+      {!loading && filteredEpisodes.length > 0 && totalPages > 1 && (
+        <div className="flex items-center justify-center space-x-2 py-6">
+          {/* Previous Button */}
+          <button
+            onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+            disabled={currentPage === 1}
+            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-1 ${
+              currentPage === 1
+                ? isDarkMode 
+                  ? 'bg-gray-800 text-gray-500 cursor-not-allowed border border-gray-700' 
+                  : 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
+                : isDarkMode
+                  ? 'bg-gray-800 text-white hover:bg-gray-700 border border-gray-600'
+                  : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+            }`}
+          >
+            <span>← Previous</span>
+          </button>
+
+          {/* Page Numbers */}
+          <div className="flex items-center space-x-1">
+            {[...Array(totalPages)].map((_, index) => {
+              const pageNum = index + 1;
+              const isCurrentPage = pageNum === currentPage;
+              
+              return (
+                <button
+                  key={pageNum}
+                  onClick={() => setCurrentPage(pageNum)}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    isCurrentPage
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : isDarkMode
+                        ? 'bg-gray-800 text-gray-300 hover:bg-gray-700 border border-gray-600'
+                        : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+                  }`}
+                >
+                  {pageNum}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Next Button */}
+          <button
+            onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+            disabled={currentPage === totalPages}
+            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center space-x-1 ${
+              currentPage === totalPages
+                ? isDarkMode 
+                  ? 'bg-gray-800 text-gray-500 cursor-not-allowed border border-gray-700' 
+                  : 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
+                : isDarkMode
+                  ? 'bg-gray-800 text-white hover:bg-gray-700 border border-gray-600'
+                  : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-300'
+            }`}
+          >
+            <span>Next →</span>
+          </button>
+        </div>
+      )}
+
+      {/* Page Info */}
+      {!loading && filteredEpisodes.length > 0 && (
+        <div className={`text-center text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+          Showing page {currentPage} of {totalPages} ({filteredEpisodes.length} episodes)
+        </div>
+      )}
+
       {/* Episode Form Modal */}
       {showEpisodeForm && (
         <TVShowForm

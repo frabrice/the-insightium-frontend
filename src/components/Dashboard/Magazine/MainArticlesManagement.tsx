@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import ArticleView from './ArticleView';
 import { 
   Star, 
@@ -34,6 +35,7 @@ export default function MainArticlesManagement({ isDarkMode }: MainArticlesManag
   const [saveStatusType, setSaveStatusType] = useState<'success' | 'error'>('success');
   const [viewingArticle, setViewingArticle] = useState<any>(null);
   const { fetchData } = useData();
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadMainArticles();
@@ -157,6 +159,13 @@ export default function MainArticlesManagement({ isDarkMode }: MainArticlesManag
     ]);
     setIsLoading(false);
     showSaveStatus('Articles refreshed!', 'success');
+  };
+
+  const handleViewArticle = (article: any) => {
+    const articleId = article._id || article.id;
+    if (articleId) {
+      navigate(`/admin/article/${articleId}`);
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -316,8 +325,9 @@ export default function MainArticlesManagement({ isDarkMode }: MainArticlesManag
                   </div>
                   <div className="flex items-center space-x-1">
                     <button 
-                      onClick={() => setViewingArticle(mainArticles.main)}
+                      onClick={() => handleViewArticle(mainArticles.main)}
                       className={`p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}
+                      title="View article details"
                     >
                       <Eye className="w-3 h-3" />
                     </button>
@@ -389,8 +399,9 @@ export default function MainArticlesManagement({ isDarkMode }: MainArticlesManag
                   </div>
                   <div className="flex items-center space-x-1">
                     <button 
-                      onClick={() => setViewingArticle(mainArticles.second)}
+                      onClick={() => handleViewArticle(mainArticles.second)}
                       className={`p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}
+                      title="View article details"
                     >
                       <Eye className="w-3 h-3" />
                     </button>
@@ -441,7 +452,7 @@ export default function MainArticlesManagement({ isDarkMode }: MainArticlesManag
             {filteredRecentArticles.map((article) => {
               const articleId = article._id || article.id;
               return (
-              <div key={articleId} className={`flex items-center justify-between p-3 rounded-lg border ${isDarkMode ? 'border-gray-700 hover:bg-gray-750' : 'border-gray-200 hover:bg-gray-50'} transition-colors`}>
+              <div key={articleId} className={`flex items-center justify-between p-3 rounded-lg border ${isDarkMode ? 'border-gray-700 hover:bg-gray-750' : 'border-gray-200 hover:bg-gray-50'} transition-colors cursor-pointer`} onClick={() => handleViewArticle(article)}>
                 <div className="flex items-center space-x-3">
                   <img 
                     src={article.featured_image || article.featuredImage}
@@ -479,7 +490,10 @@ export default function MainArticlesManagement({ isDarkMode }: MainArticlesManag
                 </div>
                 <div className="flex items-center space-x-2 ml-4">
                   <button 
-                    onClick={() => handleSetMainArticle(article, 'main')}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSetMainArticle(article, 'main');
+                    }}
                     disabled={isSaving || (mainArticles.main?._id || mainArticles.main?.id) === articleId}
                     className="px-3 py-1 bg-yellow-600 text-white rounded text-xs hover:bg-yellow-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
                   >
@@ -487,7 +501,10 @@ export default function MainArticlesManagement({ isDarkMode }: MainArticlesManag
                     <span>Set as Main</span>
                   </button>
                   <button 
-                    onClick={() => handleSetMainArticle(article, 'second')}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSetMainArticle(article, 'second');
+                    }}
                     disabled={isSaving || (mainArticles.second?._id || mainArticles.second?.id) === articleId}
                     className="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
                   >

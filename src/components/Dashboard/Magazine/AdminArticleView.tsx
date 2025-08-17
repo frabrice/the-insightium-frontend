@@ -179,11 +179,11 @@ export default function AdminArticleView({ isDarkMode }: AdminArticleViewProps) 
 
               {/* Title with better typography */}
               <div className="space-y-3">
-                <h2 className={`text-4xl font-bold leading-tight ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                <h2 className={`text-4xl font-bold leading-tight break-words ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                   {article.title}
                 </h2>
                 {article.subtitle && (
-                  <h3 className={`text-xl font-medium leading-relaxed ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                  <h3 className={`text-xl font-medium leading-relaxed break-words ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                     {article.subtitle}
                   </h3>
                 )}
@@ -324,7 +324,7 @@ export default function AdminArticleView({ isDarkMode }: AdminArticleViewProps) 
               <div className="p-6">
                 <div className={`prose prose-lg max-w-none ${isDarkMode ? 'prose-invert' : ''}`}>
                   <div className="space-y-2">
-                    <div className={`leading-relaxed whitespace-pre-wrap text-base ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                    <div className={`leading-relaxed whitespace-pre-wrap text-base break-words overflow-wrap-anywhere ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                       {isContentExpanded ? article.content : truncateText(article.content, 500)}
                     </div>
                     {article.content.length > 500 && (
@@ -404,7 +404,7 @@ export default function AdminArticleView({ isDarkMode }: AdminArticleViewProps) 
                   </h4>
                 </div>
                 <div className="space-y-2">
-                  <p className={`text-base leading-relaxed ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                  <p className={`text-base leading-relaxed break-words overflow-wrap-anywhere ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                     {isExcerptExpanded ? article.excerpt : truncateText(article.excerpt, 150)}
                   </p>
                   {article.excerpt.length > 150 && (
@@ -455,7 +455,7 @@ export default function AdminArticleView({ isDarkMode }: AdminArticleViewProps) 
                   </h4>
                 </div>
                 <div className="space-y-2">
-                  <p className={`text-base leading-relaxed ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                  <p className={`text-base leading-relaxed break-words overflow-wrap-anywhere ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
                     {isSeoExpanded ? article.metaDescription : truncateText(article.metaDescription, 120)}
                   </p>
                   {article.metaDescription.length > 120 && (

@@ -31,6 +31,9 @@ export interface PublicArticle {
   categoryName?: string;
   featured: boolean;
   trending: boolean;
+  editors_pick: boolean;
+  isMainArticle?: boolean;
+  isSecondMainArticle?: boolean;
   publishDate: string;
   views: number;
   readTime?: string;
@@ -106,6 +109,7 @@ class PublicAPI {
     category?: string;
     featured?: boolean;
     trending?: boolean;
+    editors_pick?: boolean;
     limit?: number;
     page?: number;
   }): Promise<PublicApiResponse<{ articles: PublicArticle[]; pagination: PaginationInfo }>> {
@@ -114,6 +118,7 @@ class PublicAPI {
       if (params?.category) queryParams.append('category', params.category);
       if (params?.featured) queryParams.append('featured', 'true');
       if (params?.trending) queryParams.append('trending', 'true');
+      if (params?.editors_pick) queryParams.append('editors_pick', 'true');
       if (params?.limit) queryParams.append('limit', params.limit.toString());
       if (params?.page) queryParams.append('page', params.page.toString());
 
@@ -137,6 +142,65 @@ class PublicAPI {
       return {
         success: false,
         message: 'Failed to fetch article'
+      };
+    }
+  }
+
+  async getEditorsPickArticles(): Promise<PublicApiResponse<PublicArticle[]>> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/public/articles/editors-pick`);
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching editor\'s pick articles:', error);
+      return {
+        success: false,
+        message: 'Failed to fetch editor\'s pick articles'
+      };
+    }
+  }
+
+  async getMainArticles(): Promise<PublicApiResponse<{ mainArticle: PublicArticle | null; secondMainArticle: PublicArticle | null }>> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/public/articles/main`);
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching main articles:', error);
+      return {
+        success: false,
+        message: 'Failed to fetch main articles'
+      };
+    }
+  }
+
+  async getRegularArticles(params?: {
+    limit?: number;
+    page?: number;
+  }): Promise<PublicApiResponse<{ articles: PublicArticle[]; pagination: PaginationInfo }>> {
+    try {
+      const queryParams = new URLSearchParams();
+      if (params?.limit) queryParams.append('limit', params.limit.toString());
+      if (params?.page) queryParams.append('page', params.page.toString());
+
+      const response = await fetch(`${API_BASE_URL}/public/articles/regular?${queryParams}`);
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching regular articles:', error);
+      return {
+        success: false,
+        message: 'Failed to fetch regular articles'
+      };
+    }
+  }
+
+  async getFeaturedArticles(): Promise<PublicApiResponse<PublicArticle[]>> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/public/articles/featured`);
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching featured articles:', error);
+      return {
+        success: false,
+        message: 'Failed to fetch featured articles'
       };
     }
   }

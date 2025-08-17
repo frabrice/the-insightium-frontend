@@ -1,11 +1,17 @@
 import React, { useState } from 'react';
 import { BookOpen, Clock, User, ArrowRight, Play, Video, Mail, Phone, MapPin, Facebook, Twitter, Instagram, Linkedin, Youtube, X, ArrowLeft, Search, Heart, Share2, MessageCircle, Send, ThumbsUp, ThumbsDown, Bookmark, Eye, Calendar } from 'lucide-react';
+import MainArticlesSection from './Magazine/MainArticlesSection';
+import { usePublicData } from '../contexts/PublicDataContext';
+import { useNavigate } from 'react-router-dom';
 
 interface MagazineProps {
   isDarkMode: boolean;
 }
 
 export default function Magazine({ isDarkMode }: MagazineProps) {
+  const navigate = useNavigate();
+  const { regularArticles, trendingArticles } = usePublicData();
+
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -2632,103 +2638,8 @@ export default function Magazine({ isDarkMode }: MagazineProps) {
         </div>
       </section>
 
-      {/* Featured Articles Section */}
-      <section className={`py-16 ${isDarkMode ? 'bg-gray-900' : 'bg-white'} transition-colors`}>
-        <div className="max-w-7xl mx-auto px-6">
-          {/* Main Featured Articles */}
-          <div className="grid lg:grid-cols-4 gap-8 mb-12">
-            {/* Main Featured Article - Left Side (3/4 width) */}
-            <div className="lg:col-span-3">
-              <div 
-                className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'} rounded-2xl overflow-hidden shadow-xl border hover:shadow-2xl transition-shadow duration-300 group cursor-pointer`}
-                onClick={() => openArticleView()}
-              >
-                <div className="lg:flex">
-                  <div className="lg:w-3/5 p-8 flex flex-col justify-center">
-                    <h2 className={`text-4xl font-bold mb-6 relative group-hover:after:scale-x-100 after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-red-600 after:transform after:scale-x-0 after:origin-left after:transition-transform after:duration-300 ${isDarkMode ? 'text-white' : 'text-gray-900'}`} style={{ '--after-bg': '#F21717' } as React.CSSProperties}>
-                      {mainFeaturedArticle.title}
-                    </h2>
-                    <p className={`text-lg mb-6 leading-relaxed ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                      {mainFeaturedArticle.excerpt}
-                    </p>
-                    <div className="flex items-center space-x-4">
-                      <span className="bg-red-100 text-red-600 px-3 py-1 rounded-full text-sm font-medium" style={{ backgroundColor: 'rgba(242, 23, 23, 0.1)', color: '#F21717' }}>
-                        {mainFeaturedArticle.category}
-                      </span>
-                      <div className="flex items-center space-x-2">
-                        <User className={`w-5 h-5 ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`} />
-                        <span className={`font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{mainFeaturedArticle.author}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="lg:w-2/5">
-                    <img 
-                      src={mainFeaturedArticle.image}
-                      alt={mainFeaturedArticle.title}
-                      className="w-full h-64 lg:h-full object-cover"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Secondary Featured Article - Right Side (1/4 width) */}
-            <div className="lg:col-span-1">
-              <div 
-                className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'} rounded-2xl overflow-hidden shadow-xl border hover:shadow-2xl transition-shadow duration-300 group cursor-pointer h-full`}
-                onClick={() => openArticleView()}
-              >
-                <img 
-                  src={secondaryFeaturedArticle.image}
-                  alt={secondaryFeaturedArticle.title}
-                  className="w-full h-48 object-cover"
-                />
-                <div className="p-6">
-                  <h3 className={`text-lg font-bold mb-3 relative group-hover:after:scale-x-100 after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-red-600 after:transform after:scale-x-0 after:origin-left after:transition-transform after:duration-300 ${isDarkMode ? 'text-white' : 'text-gray-900'}`} style={{ '--after-bg': '#F21717' } as React.CSSProperties}>
-                    {secondaryFeaturedArticle.title}
-                  </h3>
-                  <div className="flex items-center space-x-4 mt-4">
-                    <span className="bg-red-100 text-red-600 px-2 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: 'rgba(242, 23, 23, 0.1)', color: '#F21717' }}>
-                      {secondaryFeaturedArticle.category}
-                    </span>
-                    <div className="flex items-center space-x-1">
-                      <User className={`w-4 h-4 ${isDarkMode ? 'text-gray-400' : 'text-gray-400'}`} />
-                      <span className={`text-sm font-medium ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>{secondaryFeaturedArticle.author}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Small Featured Articles - Horizontal Layout */}
-          <div className="grid md:grid-cols-3 gap-6">
-            {smallFeaturedArticles.map((article, index) => (
-              <div 
-                key={index} 
-                className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'} rounded-xl overflow-hidden shadow-lg border hover:shadow-xl transition-shadow duration-300 group cursor-pointer`}
-                onClick={() => openArticleView()}
-              >
-                <div className="flex">
-                  <img 
-                    src={article.image}
-                    alt={article.title}
-                    className="w-24 h-24 object-cover"
-                  />
-                  <div className="flex-1 p-4">
-                    <span className="bg-red-100 text-red-600 px-2 py-1 rounded-full text-xs font-medium mb-2 inline-block" style={{ backgroundColor: 'rgba(242, 23, 23, 0.1)', color: '#F21717' }}>
-                      {article.category}
-                    </span>
-                    <h4 className={`font-bold text-sm leading-tight relative group-hover:after:scale-x-100 after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-red-600 after:transform after:scale-x-0 after:origin-left after:transition-transform after:duration-300 ${isDarkMode ? 'text-white' : 'text-gray-900'}`} style={{ '--after-bg': '#F21717' } as React.CSSProperties}>
-                      {article.title}
-                    </h4>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Main Articles Section - Above Editor's Pick */}
+      <MainArticlesSection isDarkMode={isDarkMode} />
 
       {/* Editor's Pick Section */}
       <section className={`py-16 ${isDarkMode ? 'bg-gray-800' : 'bg-gray-50'} transition-colors`}>
@@ -2836,67 +2747,99 @@ export default function Magazine({ isDarkMode }: MagazineProps) {
         </div>
       </section>
 
-      {/* Two-Column Articles Section */}
+      {/* Two-Column Articles Section - Regular Articles Left, Trending Right */}
       <section className={`py-20 ${isDarkMode ? 'bg-gray-900' : 'bg-white'} transition-colors`}>
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid lg:grid-cols-3 gap-12">
-            {/* Left Column - Articles with Images */}
+            {/* Left Column - Regular Articles (not featured, trending, or editor's pick) */}
             <div className="lg:col-span-2">
+              <h2 className={`text-2xl font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                Latest Articles ({regularArticles.length} articles with no status)
+              </h2>
               <div className="space-y-6">
-                {leftColumnArticles.map((article, index) => (
+                {regularArticles.slice(0, 5).map((article) => (
                   <div 
-                    key={index} 
+                    key={article._id || article.id} 
                     className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'} rounded-xl overflow-hidden shadow-lg border hover:shadow-xl transition-shadow duration-300 group cursor-pointer`}
-                    onClick={() => openArticleView()}
+                    onClick={() => navigate(`/article/${article._id || article.id}`)}
                   >
                     <div className="flex">
                       <img 
-                        src={article.image}
+                        src={article.featured_image || article.featuredImage || 'https://images.unsplash.com/photo-1497493292307-31c376b6e479?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80'}
                         alt={article.title}
                         className="w-32 h-32 object-cover flex-shrink-0"
+                        onError={(e) => {
+                          e.currentTarget.src = 'https://images.unsplash.com/photo-1497493292307-31c376b6e479?ixlib=rb-4.0.3&auto=format&fit=crop&w=400&q=80';
+                        }}
                       />
                       <div className="flex-1 p-6">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="bg-red-100 text-red-600 px-2 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: 'rgba(242, 23, 23, 0.1)', color: '#F21717' }}>
-                            {article.category}
-                          </span>
+                          {(article.categoryName || article.category) && (
+                            <span className="bg-red-100 text-red-600 px-2 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: 'rgba(242, 23, 23, 0.1)', color: '#F21717' }}>
+                              {article.categoryName || article.category}
+                            </span>
+                          )}
                         </div>
                         <h3 className={`text-xl font-bold mb-3 leading-tight relative group-hover:after:scale-x-100 after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-red-600 after:transform after:scale-x-0 after:origin-left after:transition-transform after:duration-300 ${isDarkMode ? 'text-white' : 'text-gray-900'}`} style={{ '--after-bg': '#F21717' } as React.CSSProperties}>
                           {article.title}
                         </h3>
-                        <p className={`text-sm leading-relaxed ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                          {article.excerpt}
+                        <p className={`text-sm leading-relaxed line-clamp-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                          {article.excerpt || article.subtitle}
                         </p>
+                        {article.author && (
+                          <div className="flex items-center space-x-2 mt-3">
+                            <User className="w-4 h-4 text-gray-400" />
+                            <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                              {article.author}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
                 ))}
+                {regularArticles.length === 0 && (
+                  <div className={`text-center py-12 ${isDarkMode ? 'bg-gray-800' : 'bg-gray-50'} rounded-xl`}>
+                    <p className={`text-lg ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      No additional articles available at the moment.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Right Column - Numbered Article Titles with Blue Numbers */}
+            {/* Right Column - Trending Articles */}
             <div className="lg:col-span-1">
               <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'} rounded-xl p-6 shadow-lg border sticky top-24`}>
                 <h3 className={`text-xl font-bold mb-6 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                   Trending Articles
                 </h3>
                 <div className="space-y-6">
-                  {rightColumnArticles.map((title, index) => (
-                    <div key={index} className="group cursor-pointer" onClick={() => openArticleView()}>
+                  {trendingArticles.slice(0, 8).map((article, index) => (
+                    <div 
+                      key={article._id || article.id} 
+                      className="group cursor-pointer" 
+                      onClick={() => navigate(`/article/${article._id || article.id}`)}
+                    >
                       <div className="flex items-start space-x-3">
                         <span className="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 mt-1">
                           {index + 1}
                         </span>
                         <h4 className={`text-sm font-medium leading-tight group-hover:text-red-600 transition-colors ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`} style={{ '--hover-color': '#F21717' } as React.CSSProperties}>
-                          {title}
+                          {article.title}
                         </h4>
                       </div>
                       {/* Thin black line between articles */}
-                      {index < rightColumnArticles.length - 1 && (
+                      {index < Math.min(trendingArticles.length, 8) - 1 && (
                         <div className={`mt-6 h-px ${isDarkMode ? 'bg-gray-600' : 'bg-black'} opacity-20`}></div>
                       )}
                     </div>
                   ))}
+                  {trendingArticles.length === 0 && (
+                    <p className={`text-sm text-center ${isDarkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      No trending articles at the moment.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
