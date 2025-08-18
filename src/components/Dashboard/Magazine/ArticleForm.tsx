@@ -149,12 +149,21 @@ export default function ArticleForm({ isDarkMode, onClose, onSave, initialData, 
       console.error('Article save error:', error);
       
       // Handle validation errors from backend
-      if (error.message && error.message.includes('validation error')) {
+      if (error.message && (error.message.includes('validation error') || error.message.includes('Validation error'))) {
         try {
-          const errorResponse = JSON.parse(error.message);
-          if (errorResponse.errors && Array.isArray(errorResponse.errors)) {
+          // Try to parse the error message as JSON
+          let errorResponse;
+          if (typeof error.message === 'string' && error.message.startsWith('{')) {
+            errorResponse = JSON.parse(error.message);
+          } else if (error.response?.data) {
+            errorResponse = error.response.data;
+          } else if (error.data) {
+            errorResponse = error.data;
+          }
+          
+          if (errorResponse && errorResponse.errors && Array.isArray(errorResponse.errors)) {
             const fieldErrors: {[key: string]: string} = {};
-            let hasValidationErrors = false;
+            let validationMessages: string[] = [];
             
             errorResponse.errors.forEach((err: any) => {
               if (err.path && err.msg) {
@@ -170,24 +179,33 @@ export default function ArticleForm({ isDarkMode, onClose, onSave, initialData, 
                 
                 const frontendField = fieldMap[err.path] || err.path;
                 fieldErrors[frontendField] = err.msg;
-                hasValidationErrors = true;
+                validationMessages.push(err.msg);
               }
             });
             
-            if (hasValidationErrors) {
+            if (validationMessages.length > 0) {
               setErrors(fieldErrors);
-              // Only show the general validation message, not specific errors
-              showError('Please fill all required fields');
+              // Show the first validation error message instead of generic message
+              showError('Validation Error', validationMessages[0]);
               return;
             }
           }
         } catch (parseError) {
-          // If parsing fails, fall through to generic error
+          console.error('Error parsing validation response:', parseError);
         }
       }
       
-      setErrors({ general: error.message || 'Failed to save article. Please try again.' });
-      showError('Save Failed', error.message || 'Failed to save article. Please try again.');
+      // Clean up error message - don't show raw JSON
+      let cleanErrorMessage = 'Failed to save article. Please try again.';
+      if (error.message && typeof error.message === 'string') {
+        // If it's not JSON, use the message directly
+        if (!error.message.startsWith('{') && !error.message.includes('validation error')) {
+          cleanErrorMessage = error.message;
+        }
+      }
+      
+      setErrors({ general: cleanErrorMessage });
+      showError('Save Failed', cleanErrorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -441,6 +459,7 @@ export default function ArticleForm({ isDarkMode, onClose, onSave, initialData, 
                         onChange={(e) => handleInputChange('excerpt', e.target.value)}
                         placeholder="Brief summary that appears in article listings"
                         rows={3}
+                        maxLength={500}
                         className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 text-sm resize-none ${
                           errors.excerpt 
                             ? 'border-red-500 focus:ring-red-500' 
@@ -451,9 +470,24 @@ export default function ArticleForm({ isDarkMode, onClose, onSave, initialData, 
                             : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
                         }`}
                       />
-                      {errors.excerpt && (
-                        <p className="text-xs text-red-600 mt-1">{errors.excerpt}</p>
-                      )}
+                      <div className="flex items-center justify-between mt-1">
+                        <div>
+                          {errors.excerpt && (
+                            <p className="text-xs text-red-600">{errors.excerpt}</p>
+                          )}
+                        </div>
+                        <p className={`text-xs ${
+                          formData.excerpt.length > 500 
+                            ? 'text-red-600' 
+                            : formData.excerpt.length > 450 
+                              ? 'text-yellow-600' 
+                              : isDarkMode 
+                                ? 'text-gray-400' 
+                                : 'text-gray-500'
+                        }`}>
+                          {formData.excerpt.length}/500 characters
+                        </p>
+                      </div>
                     </div>
 
                     {/* Category & Author */}

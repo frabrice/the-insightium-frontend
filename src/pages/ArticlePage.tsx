@@ -231,11 +231,6 @@ export default function ArticlePage({ isDarkMode }: ArticlePageProps) {
                 <p className={`font-semibold ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
                   {article.author}
                 </p>
-                {article.authorBio && (
-                  <p className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                    {article.authorBio}
-                  </p>
-                )}
               </div>
             </div>
             
@@ -280,29 +275,7 @@ export default function ArticlePage({ isDarkMode }: ArticlePageProps) {
                 </div>
               )}
 
-              {/* Excerpt */}
-              {article.excerpt && (
-                <div className="mb-8 space-y-2">
-                  <p className={`text-lg leading-relaxed font-medium break-words overflow-wrap-anywhere ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                    {isExcerptExpanded ? article.excerpt : truncateText(article.excerpt, 200)}
-                  </p>
-                  {article.excerpt.length > 200 && (
-                    <button
-                      onClick={() => setIsExcerptExpanded(!isExcerptExpanded)}
-                      className={`inline-flex items-center space-x-1 text-sm font-medium transition-colors ${
-                        isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'
-                      }`}
-                    >
-                      <span>{isExcerptExpanded ? 'Show less' : 'Show more'}</span>
-                      {isExcerptExpanded ? (
-                        <ChevronUp className="w-4 h-4" />
-                      ) : (
-                        <ChevronDown className="w-4 h-4" />
-                      )}
-                    </button>
-                  )}
-                </div>
-              )}
+
 
               {/* Article Content */}
               <div className={`prose prose-lg max-w-none ${isDarkMode ? 'prose-invert' : ''}`}>
@@ -376,93 +349,47 @@ export default function ArticlePage({ isDarkMode }: ArticlePageProps) {
                         </button>
                       )}
                     </div>
-                    {article.allowComments && (
-                      <button 
-                        onClick={() => setShowCommentForm(!showCommentForm)}
-                        className="flex items-center space-x-2 text-gray-500 hover:text-green-600 transition-colors"
-                      >
-                        <MessageSquare className="w-5 h-5" />
-                        <span>Comment ({commentCount})</span>
-                      </button>
-                    )}
                   </div>
                 </div>
               </div>
 
-              {/* Comment Form */}
-              {showCommentForm && article.allowComments && (
-                <div className="mt-6 p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
-                  <h4 className={`text-lg font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                    Add a Comment
-                  </h4>
-                  <form onSubmit={handleCommentSubmit} className="space-y-4">
-                    <textarea
-                      placeholder="Write your comment here..."
-                      value={commentContent}
-                      onChange={(e) => setCommentContent(e.target.value)}
-                      rows={4}
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 resize-none ${
-                        isDarkMode 
-                          ? 'bg-gray-800 border-gray-600 text-white placeholder-gray-400' 
-                          : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
-                      }`}
-                      required
-                    />
-                    <div className="flex items-center justify-between">
-                      <button
-                        type="button"
-                        onClick={() => setShowCommentForm(false)}
-                        className={`px-4 py-2 rounded-lg transition-colors ${
-                          isDarkMode ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-gray-900'
-                        }`}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="submit"
-                        disabled={commentLoading || !commentContent}
-                        className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <Send className="w-4 h-4" />
-                        <span>{commentLoading ? 'Posting...' : 'Post Comment'}</span>
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              )}
-
-              {/* Comments Section */}
-              {comments.length > 0 && (
+              {/* Additional Images Gallery */}
+              {article.additionalImages && article.additionalImages.length > 0 && (
                 <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
-                  <h4 className={`text-lg font-semibold mb-4 ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                    Latest Comments ({commentCount})
-                  </h4>
-                  <div className="space-y-4">
-                    {comments.map((comment, index) => (
-                      <div key={comment._id} className={`p-4 rounded-lg ${isDarkMode ? 'bg-gray-800' : 'bg-gray-50'}`}>
-                        <div className="flex items-center justify-between mb-2">
-                          <span className={`font-medium ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
-                            Anonymous
-                          </span>
-                          <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                            {new Date(comment.createdAt).toLocaleDateString()}
-                          </span>
+                  <h3 className={`text-xl font-bold mb-6 flex items-center ${isDarkMode ? 'text-white' : 'text-gray-900'}`}>
+                    <svg className="w-6 h-6 mr-3 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                    </svg>
+                    Image Gallery
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {article.additionalImages.map((image: any, index: number) => (
+                      <div key={image.id || index} className={`group relative overflow-hidden rounded-xl ${isDarkMode ? 'bg-gray-800' : 'bg-gray-50'} p-4 transition-all duration-300 hover:shadow-xl`}>
+                        <div className="relative overflow-hidden rounded-lg">
+                          <img 
+                            src={image.url} 
+                            alt={image.alt || `Gallery image ${index + 1}`}
+                            className="w-full h-64 object-cover transition-transform duration-300 group-hover:scale-105"
+                            onError={(e) => {
+                              e.currentTarget.src = 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80';
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                         </div>
-                        <p className={`${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                          {comment.content}
-                        </p>
+                        {image.caption && (
+                          <div className="mt-3">
+                            <p className={`text-sm leading-relaxed ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+                              {image.caption}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
-                  {commentCount > 3 && (
-                    <div className="mt-4 text-center">
-                      <span className={`text-sm ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-                        Showing latest 3 of {commentCount} comments
-                      </span>
-                    </div>
-                  )}
                 </div>
               )}
+
+
           </div>
         </div>
       </main>

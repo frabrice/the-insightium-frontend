@@ -117,7 +117,7 @@ export default function MainArticlesSection({ isDarkMode }: MainArticlesSectionP
                         }}>
                       {mainArticle?.title}
                     </h1>
-                    <p className={`text-xs sm:text-sm lg:text-sm leading-relaxed mb-3 sm:mb-4 lg:mb-6 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} line-clamp-3`}>
+                    <p className={`text-xs sm:text-sm lg:text-sm leading-relaxed mb-3 sm:mb-4 lg:mb-6 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} line-clamp-4`}>
                       {mainArticle?.excerpt}
                     </p>
                   </div>
@@ -161,7 +161,7 @@ export default function MainArticlesSection({ isDarkMode }: MainArticlesSectionP
             {mainArticle && (
             <div className={mainArticle && secondMainArticle ? "lg:col-span-3" : ""}>
               <div 
-                className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'} rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-6 shadow-lg border transition-colors group cursor-pointer hover:shadow-xl`}
+                className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-100'} rounded-lg sm:rounded-xl lg:rounded-2xl p-3 sm:p-4 lg:p-6 shadow-lg border transition-colors group cursor-pointer hover:shadow-xl h-28 sm:h-32 lg:h-80`}
                 onClick={handleMainArticleClick}
               >
                 <div className="flex flex-col lg:grid lg:grid-cols-5 gap-4 sm:gap-6 lg:gap-8 items-start h-full">
@@ -175,7 +175,7 @@ export default function MainArticlesSection({ isDarkMode }: MainArticlesSectionP
                           }}>
                         {mainArticle?.title}
                       </h1>
-                      <p className={`text-xs sm:text-sm lg:text-sm leading-relaxed mb-3 sm:mb-4 lg:mb-6 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} line-clamp-3`}>
+                      <p className={`text-xs sm:text-sm lg:text-sm leading-relaxed mb-3 sm:mb-4 lg:mb-6 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} line-clamp-4`}>
                         {mainArticle?.excerpt}
                       </p>
                     </div>
@@ -252,7 +252,7 @@ export default function MainArticlesSection({ isDarkMode }: MainArticlesSectionP
                   
                   {/* Description/Excerpt for second article */}
                   {secondMainArticle?.excerpt && (
-                    <p className={`text-xs leading-relaxed mb-2 sm:mb-3 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} line-clamp-2`}>
+                    <p className={`text-xs leading-relaxed mb-2 sm:mb-3 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} line-clamp-3`}>
                       {secondMainArticle?.excerpt}
                     </p>
                   )}

@@ -16,7 +16,7 @@ import {
   Play,
   Youtube
 } from 'lucide-react';
-import { db } from '../../../lib/supabase';
+import { useToast } from '../../../contexts/ToastContext';
 
 interface TVShowFormProps {
   isDarkMode: boolean;
@@ -28,6 +28,7 @@ interface TVShowFormProps {
 }
 
 export default function TVShowForm({ isDarkMode, onClose, onSave, initialData, mode = 'create', seasons }: TVShowFormProps) {
+  const { showError, showSuccess } = useToast();
   const [formData, setFormData] = useState({
     title: initialData?.title || '',
     description: initialData?.description || '',
@@ -49,6 +50,8 @@ export default function TVShowForm({ isDarkMode, onClose, onSave, initialData, m
 
   const [activeTab, setActiveTab] = useState('content');
   const [previewMode, setPreviewMode] = useState(false);
+  const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const categories = ['Full Episodes', 'Mind Battles', 'Pitch Perfect', 'Insight Stories', 'Behind Insight'];
   const sections = [
@@ -67,6 +70,10 @@ export default function TVShowForm({ isDarkMode, onClose, onSave, initialData, m
   };
 
   const handleSave = async (status: string) => {
+    setIsSubmitting(true);
+    setErrors({});
+    
+    try {
       const episodeData = {
         title: formData.title,
         description: formData.description,
@@ -88,7 +95,74 @@ export default function TVShowForm({ isDarkMode, onClose, onSave, initialData, m
         id: initialData?.id || Date.now().toString()
       };
 
-      onSave(episodeData);
+      await onSave(episodeData);
+    } catch (error: any) {
+      console.error('TV Show save error:', error);
+      
+      // Handle validation errors from backend
+      if (error.message && (error.message.includes('validation error') || error.message.includes('Validation error'))) {
+        try {
+          // Try to parse the error message as JSON
+          let errorResponse;
+          if (typeof error.message === 'string' && error.message.startsWith('{')) {
+            errorResponse = JSON.parse(error.message);
+          } else if (error.response?.data) {
+            errorResponse = error.response.data;
+          } else if (error.data) {
+            errorResponse = error.data;
+          }
+          
+          if (errorResponse && errorResponse.errors && Array.isArray(errorResponse.errors)) {
+            const fieldErrors: {[key: string]: string} = {};
+            let validationMessages: string[] = [];
+            
+            errorResponse.errors.forEach((err: any) => {
+              if (err.path && err.msg) {
+                // Map backend field names to frontend field names
+                const fieldMap: {[key: string]: string} = {
+                  'title': 'title',
+                  'description': 'description',
+                  'duration': 'duration',
+                  'thumbnail': 'thumbnail',
+                  'youtube_url': 'youtubeUrl',
+                  'episode_number': 'episodeNumber',
+                  'tags': 'tags',
+                  'meta_description': 'metaDescription',
+                  'rating': 'rating'
+                };
+                
+                const frontendField = fieldMap[err.path] || err.path;
+                fieldErrors[frontendField] = err.msg;
+                validationMessages.push(err.msg);
+              }
+            });
+            
+            if (validationMessages.length > 0) {
+              setErrors(fieldErrors);
+              // Show the first validation error message instead of generic message
+              showError('Validation Error', validationMessages[0]);
+              return;
+            }
+          }
+        } catch (parseError) {
+          console.error('Error parsing validation response:', parseError);
+        }
+      }
+      
+      // Clean up error message - don't show raw JSON
+      let cleanErrorMessage = 'Failed to save episode. Please try again.';
+      if (error.message && typeof error.message === 'string') {
+        // If it's not JSON, use the message directly
+        if (!error.message.startsWith('{') && !error.message.includes('validation error')) {
+          cleanErrorMessage = error.message;
+        }
+      }
+      
+      setErrors({ general: cleanErrorMessage });
+      showError('Save Failed', cleanErrorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const tabs = [
@@ -220,37 +294,51 @@ export default function TVShowForm({ isDarkMode, onClose, onSave, initialData, m
                     {/* Title */}
                     <div>
                       <label className={`block text-xs font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                        Episode Title *
+                        Episode Title
                       </label>
                       <input
                         type="text"
                         value={formData.title}
                         onChange={(e) => handleInputChange('title', e.target.value)}
                         placeholder="Enter episode title"
-                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm ${
+                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 text-sm ${
+                          errors.title 
+                            ? 'border-red-500 focus:ring-red-500' 
+                            : 'focus:ring-red-500'
+                        } ${
                           isDarkMode 
                             ? 'bg-gray-900 border-gray-600 text-white placeholder-gray-400' 
                             : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
                         }`}
                       />
+                      {errors.title && (
+                        <p className="text-xs text-red-600 mt-1">{errors.title}</p>
+                      )}
                     </div>
 
                     {/* Description */}
                     <div>
                       <label className={`block text-xs font-medium mb-2 ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}>
-                        Description *
+                        Description
                       </label>
                       <textarea
                         value={formData.description}
                         onChange={(e) => handleInputChange('description', e.target.value)}
                         placeholder="Episode description"
                         rows={4}
-                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-sm resize-none ${
+                        className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 text-sm resize-none ${
+                          errors.description 
+                            ? 'border-red-500 focus:ring-red-500' 
+                            : 'focus:ring-red-500'
+                        } ${
                           isDarkMode 
                             ? 'bg-gray-900 border-gray-600 text-white placeholder-gray-400' 
                             : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500'
                         }`}
                       />
+                      {errors.description && (
+                        <p className="text-xs text-red-600 mt-1">{errors.description}</p>
+                      )}
                     </div>
 
                     {/* Category & Section */}
@@ -548,26 +636,47 @@ export default function TVShowForm({ isDarkMode, onClose, onSave, initialData, m
         {/* Footer */}
         <div className={`flex items-center justify-between p-4 border-t ${isDarkMode ? 'border-gray-700' : 'border-gray-200'}`}>
           <div className="flex items-center space-x-2">
-            <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
-              Status: 
-            </span>
-            <span className={`text-xs font-medium px-2 py-1 rounded ${
-              formData.status === 'published' 
-                ? 'bg-green-100 text-green-600 dark:bg-green-900/20 dark:text-green-400'
-                : 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/20 dark:text-yellow-400'
-            }`}>
-              {formData.status.charAt(0).toUpperCase() + formData.status.slice(1)}
-            </span>
+            {errors.general && (
+              <span className="text-xs text-red-600 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded">
+                {errors.general}
+              </span>
+            )}
+            {!errors.general && (
+              <>
+                <span className={`text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'}`}>
+                  Status: 
+                </span>
+                <span className={`text-xs font-medium px-2 py-1 rounded ${
+                  formData.status === 'published' 
+                    ? 'bg-green-100 text-green-600 dark:bg-green-900/20 dark:text-green-400'
+                    : 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900/20 dark:text-yellow-400'
+                }`}>
+                  {formData.status.charAt(0).toUpperCase() + formData.status.slice(1)}
+                </span>
+              </>
+            )}
           </div>
           
-          <div className="flex items-center justify-end">
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={onClose}
+              className={`px-4 py-2 border rounded-lg text-xs font-medium transition-colors ${
+                isDarkMode 
+                  ? 'border-gray-600 text-gray-300 hover:bg-gray-700' 
+                  : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+              }`}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </button>
             <button
               onClick={() => handleSave('published')}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg text-xs font-medium hover:bg-red-700 transition-colors flex items-center space-x-1"
+              disabled={isSubmitting}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg text-xs font-medium hover:bg-red-700 transition-colors flex items-center space-x-1 disabled:opacity-50"
               style={{ backgroundColor: '#F21717' }}
             >
               <Save className="w-3 h-3" />
-              <span>Save Episode</span>
+              <span>{isSubmitting ? 'Saving...' : mode === 'edit' ? 'Update Episode' : 'Save Episode'}</span>
             </button>
           </div>
         </div>

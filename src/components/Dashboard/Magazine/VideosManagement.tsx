@@ -118,12 +118,9 @@ export default function VideosManagement({ isDarkMode }: VideosManagementProps) 
       setEditingVideo(null);
     } catch (error: any) {
       console.error('Error saving video:', error);
-      // Show simple error message instead of full JSON
-      if (editingVideo) {
-        showError('Error updating video');
-      } else {
-        showError('Error creating video');
-      }
+      
+      // Re-throw the error so the form can handle validation errors
+      throw error;
     }
   };
 

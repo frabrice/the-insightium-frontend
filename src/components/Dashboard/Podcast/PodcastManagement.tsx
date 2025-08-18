@@ -120,11 +120,9 @@ export default function PodcastManagement({ isDarkMode }: PodcastManagementProps
       setEditingEpisode(null);
     } catch (error: any) {
       console.error('Error saving podcast episode:', error);
-      if (editingEpisode) {
-        showError('Error updating podcast episode');
-      } else {
-        showError('Error creating podcast episode');
-      }
+      
+      // Re-throw the error so the form can handle validation errors
+      throw error;
     }
   };
 

@@ -125,9 +125,22 @@ export const tvShowsApi = {
         headers: getAuthHeaders(),
         body: JSON.stringify(tvShowData)
       });
-      return await response.json();
+      const result = await response.json();
+      
+      // If the response indicates failure, throw an error with the response data
+      if (!result.success) {
+        const error = new Error(JSON.stringify(result));
+        throw error;
+      }
+      
+      return result;
     } catch (error) {
       console.error('Error creating TV show:', error);
+      // Re-throw if it's already our formatted error
+      if (error instanceof Error && error.message.startsWith('{')) {
+        throw error;
+      }
+      // Otherwise, return a generic error response
       return {
         success: false,
         data: {} as TVShow,
@@ -144,9 +157,22 @@ export const tvShowsApi = {
         headers: getAuthHeaders(),
         body: JSON.stringify(tvShowData)
       });
-      return await response.json();
+      const result = await response.json();
+      
+      // If the response indicates failure, throw an error with the response data
+      if (!result.success) {
+        const error = new Error(JSON.stringify(result));
+        throw error;
+      }
+      
+      return result;
     } catch (error) {
       console.error('Error updating TV show:', error);
+      // Re-throw if it's already our formatted error
+      if (error instanceof Error && error.message.startsWith('{')) {
+        throw error;
+      }
+      // Otherwise, return a generic error response
       return {
         success: false,
         data: {} as TVShow,

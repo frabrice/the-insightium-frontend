@@ -131,9 +131,22 @@ export const podcastsApi = {
         headers: getAuthHeaders(),
         body: JSON.stringify(podcastData)
       });
-      return await response.json();
+      const result = await response.json();
+      
+      // If the response indicates failure, throw an error with the response data
+      if (!result.success) {
+        const error = new Error(JSON.stringify(result));
+        throw error;
+      }
+      
+      return result;
     } catch (error) {
       console.error('Error creating podcast:', error);
+      // Re-throw if it's already our formatted error
+      if (error instanceof Error && error.message.startsWith('{')) {
+        throw error;
+      }
+      // Otherwise, return a generic error response
       return {
         success: false,
         data: {} as Podcast,
@@ -150,9 +163,22 @@ export const podcastsApi = {
         headers: getAuthHeaders(),
         body: JSON.stringify(podcastData)
       });
-      return await response.json();
+      const result = await response.json();
+      
+      // If the response indicates failure, throw an error with the response data
+      if (!result.success) {
+        const error = new Error(JSON.stringify(result));
+        throw error;
+      }
+      
+      return result;
     } catch (error) {
       console.error('Error updating podcast:', error);
+      // Re-throw if it's already our formatted error
+      if (error instanceof Error && error.message.startsWith('{')) {
+        throw error;
+      }
+      // Otherwise, return a generic error response
       return {
         success: false,
         data: {} as Podcast,

@@ -55,7 +55,7 @@ export default function TVShowManagement({ isDarkMode }: TVShowManagementProps) 
       setLoading(true);
       const response = await tvShowsApi.getTVShows({
         page: currentPage,
-        limit: 10,
+        limit: 4,
         ...(selectedCategory !== 'all' && { category: selectedCategory }),
         ...(selectedStatus !== 'all' && { status: selectedStatus })
       });
@@ -118,11 +118,9 @@ export default function TVShowManagement({ isDarkMode }: TVShowManagementProps) 
       setEditingEpisode(null);
     } catch (error: any) {
       console.error('Error saving TV show episode:', error);
-      if (editingEpisode) {
-        showError('Error updating TV show episode');
-      } else {
-        showError('Error creating TV show episode');
-      }
+      
+      // Re-throw the error so the form can handle validation errors
+      throw error;
     }
   };
 
