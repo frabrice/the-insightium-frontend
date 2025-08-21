@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Calendar, User, Clock, Eye, Heart, ArrowLeft, MessageSquare, Tag, TrendingUp, Send, ChevronDown, ChevronUp } from 'lucide-react';
+import { Calendar, User, Clock, Eye, Heart, ArrowLeft, MessageSquare, Tag, TrendingUp, Send } from 'lucide-react';
 import { publicApi, PublicArticle } from '../api/public';
 import Footer from '../components/shared/Footer';
 import { likesApi } from '../api/likes';
@@ -28,15 +28,7 @@ export default function ArticlePage({ isDarkMode }: ArticlePageProps) {
   const [commentLoading, setCommentLoading] = useState(false);
   const [commentContent, setCommentContent] = useState('');
   
-  // Text expansion states
-  const [isExcerptExpanded, setIsExcerptExpanded] = useState(false);
-  const [isContentExpanded, setIsContentExpanded] = useState(false);
 
-  // Truncate text utility
-  const truncateText = (text: string, maxLength: number = 150): string => {
-    if (!text || text.length <= maxLength) return text;
-    return text.slice(0, maxLength) + '...';
-  };
 
   // Handle like increment
   const handleLike = async () => {
@@ -279,31 +271,12 @@ export default function ArticlePage({ isDarkMode }: ArticlePageProps) {
 
               {/* Article Content */}
               <div className={`prose prose-lg max-w-none ${isDarkMode ? 'prose-invert' : ''}`}>
-                <div className="space-y-2">
-                  <div 
-                    className={`leading-relaxed break-words overflow-wrap-anywhere ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}
-                    dangerouslySetInnerHTML={{ 
-                      __html: formatContent(
-                        isContentExpanded ? (article.content || '') : truncateText(article.content || '', 500)
-                      ) 
-                    }}
-                  />
-                  {(article.content || '').length > 500 && (
-                    <button
-                      onClick={() => setIsContentExpanded(!isContentExpanded)}
-                      className={`inline-flex items-center space-x-1 text-sm font-medium transition-colors ${
-                        isDarkMode ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-700'
-                      }`}
-                    >
-                      <span>{isContentExpanded ? 'Show less' : 'Show more'}</span>
-                      {isContentExpanded ? (
-                        <ChevronUp className="w-4 h-4" />
-                      ) : (
-                        <ChevronDown className="w-4 h-4" />
-                      )}
-                    </button>
-                  )}
-                </div>
+                <div 
+                  className={`leading-relaxed break-words overflow-wrap-anywhere ${isDarkMode ? 'text-gray-300' : 'text-gray-700'}`}
+                  dangerouslySetInnerHTML={{ 
+                    __html: formatContent(article.content || '') 
+                  }}
+                />
               </div>
 
               {/* Tags */}

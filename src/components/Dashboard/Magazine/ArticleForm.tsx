@@ -831,13 +831,6 @@ export default function ArticleForm({ isDarkMode, onClose, onSave, initialData, 
                                   {image.caption}
                                 </p>
                               )}
-                              <button
-                                onClick={() => insertImageIntoContent(image.url, image.alt, image.caption)}
-                                className="w-full px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition-colors flex items-center justify-center space-x-1"
-                              >
-                                <Plus className="w-3 h-3" />
-                                <span>Insert into Article</span>
-                              </button>
                             </div>
                           </div>
                         ))}
@@ -855,9 +848,8 @@ export default function ArticleForm({ isDarkMode, onClose, onSave, initialData, 
                         </h3>
                         <ul className={`text-xs mt-1 space-y-1 ${isDarkMode ? 'text-blue-400' : 'text-blue-700'}`}>
                           <li>• Add images to your gallery using the form above</li>
-                          <li>• Click "Insert into Article" to add the image to your content</li>
+                          <li>• Images will be stored and displayed in the article gallery section</li>
                           <li>• Images will appear in the article preview and final published article</li>
-                          <li>• You can add captions that will appear below the images</li>
                         </ul>
                       </div>
                     </div>

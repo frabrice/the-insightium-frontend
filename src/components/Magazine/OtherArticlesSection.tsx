@@ -122,7 +122,7 @@ export default function OtherArticlesSection({ isDarkMode }: OtherArticlesSectio
 
                       {/* Article Description */}
                       <p className="text-gray-600 text-xs sm:text-sm leading-relaxed line-clamp-2 sm:line-clamp-2 lg:line-clamp-3">
-                        {article.excerpt || article.description}
+                        {article.content ? article.content.slice(0, 150) + (article.content.length > 150 ? '...' : '') : (article.excerpt || article.description)}
                       </p>
                     </div>
                   </div>

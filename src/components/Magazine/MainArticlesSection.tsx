@@ -117,12 +117,12 @@ export default function MainArticlesSection({ isDarkMode }: MainArticlesSectionP
                         }}>
                       {mainArticle?.title}
                     </h1>
-                    <p className={`text-xs sm:text-sm lg:text-sm leading-relaxed mb-3 sm:mb-4 lg:mb-6 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} line-clamp-4`}>
-                      {mainArticle?.excerpt}
+                    <p className={`text-xs sm:text-sm lg:text-sm leading-relaxed mb-3 sm:mb-4 lg:mb-6 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} line-clamp-7 lg:line-clamp-10`}>
+                      {mainArticle?.content ? mainArticle.content.slice(0, 650) + (mainArticle.content.length > 650 ? '...' : '') : mainArticle?.excerpt}
                     </p>
                   </div>
                   
-                  {/* Category and Author */}
+                  {/* Category and Author - back at bottom */}
                   <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-3 lg:space-x-4">
                     {(mainArticle?.categoryName || mainArticle?.category) && (
                       <span className={`inline-flex items-center px-3 py-1.5 border-2 border-red-500 rounded-lg text-xs font-bold truncate max-w-full ${isDarkMode ? 'border-red-500 text-red-400 bg-red-900/20' : 'border-red-500 text-red-600 bg-red-50'}`}>
@@ -175,12 +175,12 @@ export default function MainArticlesSection({ isDarkMode }: MainArticlesSectionP
                           }}>
                         {mainArticle?.title}
                       </h1>
-                      <p className={`text-xs sm:text-sm lg:text-sm leading-relaxed mb-3 sm:mb-4 lg:mb-6 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} line-clamp-4`}>
-                        {mainArticle?.excerpt}
+                      <p className={`text-xs sm:text-sm lg:text-sm leading-relaxed mb-3 sm:mb-4 lg:mb-6 ${isDarkMode ? 'text-gray-300' : 'text-gray-600'} line-clamp-7 lg:line-clamp-10`}>
+                        {mainArticle?.content ? mainArticle.content.slice(0, 650) + (mainArticle.content.length > 650 ? '...' : '') : mainArticle?.excerpt}
                       </p>
                     </div>
                     
-                    {/* Category and Author */}
+                    {/* Category and Author - back at bottom */}
                     <div className="flex flex-col sm:flex-row sm:items-center space-y-1 sm:space-y-0 sm:space-x-3 lg:space-x-4">
                       {(mainArticle?.categoryName || mainArticle?.category) && (
                         <span className={`inline-flex items-center px-3 py-1.5 border-2 border-red-500 rounded-lg text-xs font-bold truncate max-w-full ${isDarkMode ? 'border-red-500 text-red-400 bg-red-900/20' : 'border-red-500 text-red-600 bg-red-50'}`}>
@@ -251,9 +251,9 @@ export default function MainArticlesSection({ isDarkMode }: MainArticlesSectionP
                   )}
                   
                   {/* Description/Excerpt for second article */}
-                  {secondMainArticle?.excerpt && (
+                  {(secondMainArticle?.content || secondMainArticle?.excerpt) && (
                     <p className={`text-xs leading-relaxed mb-2 sm:mb-3 ${isDarkMode ? 'text-gray-400' : 'text-gray-600'} line-clamp-3`}>
-                      {secondMainArticle?.excerpt}
+                      {secondMainArticle?.content ? secondMainArticle.content.slice(0, 150) + (secondMainArticle.content.length > 150 ? '...' : '') : secondMainArticle?.excerpt}
                     </p>
                   )}
                   
