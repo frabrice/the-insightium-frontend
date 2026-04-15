@@ -141,39 +141,43 @@ export default function CommentsSection({ articleId }: CommentsSectionProps) {
           )}
         </h4>
 
-        {submitted && !user ? (
+        {!user ? (
+          <div className="text-center py-6 space-y-3">
+            <p className="text-sm text-neutral-600 dark:text-neutral-400 font-serif">
+              You need to be signed in to leave a comment.
+            </p>
+            <div className="flex items-center justify-center gap-3">
+              <button
+                onClick={() => { setAuthModalTab('signin'); setShowAuthModal(true); }}
+                className="bg-brand-red text-white text-sm font-medium px-5 py-2 rounded-sm hover:bg-brand-red-dark transition-colors"
+              >
+                Sign In
+              </button>
+              <button
+                onClick={() => { setAuthModalTab('signup'); setShowAuthModal(true); }}
+                className="border border-neutral-300 dark:border-neutral-600 text-brand-black dark:text-white text-sm font-medium px-5 py-2 rounded-sm hover:border-brand-red hover:text-brand-red transition-colors"
+              >
+                Create Account
+              </button>
+            </div>
+          </div>
+        ) : submitted ? (
           <div className="text-center py-4">
             <p className="text-sm text-neutral-600 dark:text-neutral-400 font-serif">
-              Your comment has been submitted and is awaiting moderation. Thank you!
+              Your comment has been posted. Thank you!
             </p>
+            <button
+              onClick={() => setSubmitted(false)}
+              className="mt-3 text-xs text-brand-red hover:underline"
+            >
+              Write another comment
+            </button>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-3">
-            {!user && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <input
-                  type="text"
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  placeholder="Your name *"
-                  required
-                  className="w-full bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-brand-black dark:text-white text-sm px-3 py-2.5 rounded-sm focus:outline-none focus:border-brand-red transition-colors"
-                />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  placeholder="Your email *"
-                  required
-                  className="w-full bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-brand-black dark:text-white text-sm px-3 py-2.5 rounded-sm focus:outline-none focus:border-brand-red transition-colors"
-                />
-              </div>
-            )}
-            {user && (
-              <p className="text-xs text-neutral-500">
-                Commenting as <span className="font-medium text-brand-black dark:text-white">{profile?.display_name || user.email}</span>
-              </p>
-            )}
+            <p className="text-xs text-neutral-500">
+              Commenting as <span className="font-medium text-brand-black dark:text-white">{profile?.display_name || user.email}</span>
+            </p>
             <textarea
               value={content}
               onChange={e => setContent(e.target.value)}
@@ -182,16 +186,11 @@ export default function CommentsSection({ articleId }: CommentsSectionProps) {
               rows={4}
               className="w-full bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 text-brand-black dark:text-white text-sm px-3 py-2.5 rounded-sm focus:outline-none focus:border-brand-red transition-colors resize-none font-serif leading-relaxed"
             />
-            <div className="flex items-center justify-between">
-              {!user && (
-                <p className="text-xs text-neutral-400">
-                  Your comment will be reviewed before publishing.
-                </p>
-              )}
+            <div className="flex justify-end">
               <button
                 type="submit"
                 disabled={isSubmitting || !content.trim()}
-                className="ml-auto flex items-center gap-2 bg-brand-red text-white text-sm font-medium px-4 py-2 rounded-sm hover:bg-brand-red-dark transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 bg-brand-red text-white text-sm font-medium px-4 py-2 rounded-sm hover:bg-brand-red-dark transition-colors disabled:opacity-50"
               >
                 {isSubmitting ? (
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
