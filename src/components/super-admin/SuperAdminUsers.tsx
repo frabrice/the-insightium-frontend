@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Edit, X, Save, Search, Shield, User } from 'lucide-react';
+import { Plus, CreditCard as Edit, X, Save, Search, User, Copy, Check, Eye, EyeOff } from 'lucide-react';
 import { adminApi } from '../../lib/adminAuth';
 
 const ROLES = ['admin', 'editor', 'author'];
@@ -26,6 +26,12 @@ const EMPTY_FORM: UserForm = {
   is_active: true,
 };
 
+interface CreatedCredentials {
+  email: string;
+  password: string;
+  full_name: string;
+}
+
 export default function SuperAdminUsers() {
   const [users, setUsers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -36,6 +42,9 @@ export default function SuperAdminUsers() {
   const [form, setForm] = useState<UserForm>(EMPTY_FORM);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
+  const [credentials, setCredentials] = useState<CreatedCredentials | null>(null);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     loadUsers();
@@ -52,6 +61,7 @@ export default function SuperAdminUsers() {
     setEditId(null);
     setForm(EMPTY_FORM);
     setShowForm(true);
+    setSaveMsg('');
   }
 
   function openEdit(user: any) {
@@ -67,32 +77,66 @@ export default function SuperAdminUsers() {
       is_active: user.is_active !== false,
     });
     setShowForm(true);
+    setSaveMsg('');
   }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     if (!form.full_name.trim() || !form.email.trim()) return;
     setIsSaving(true);
+    setSaveMsg('');
 
-    let error = null;
     if (editId) {
-      const res = await adminApi.superAdmin.updateUser(editId, form);
-      error = res.error;
-      if (!error) setUsers(prev => prev.map(u => u.id === editId ? { ...u, ...form } : u));
+      const res = await adminApi.superAdmin.updateUser(editId, {
+        full_name: form.full_name,
+        role: form.role,
+        specialty: form.specialty,
+        bio: form.bio,
+        twitter: form.twitter,
+        linkedin: form.linkedin,
+        is_active: form.is_active,
+      });
+      setIsSaving(false);
+      if (res.error) {
+        setSaveMsg('Failed to update: ' + ((res.error as any)?.message || ''));
+      } else {
+        setUsers(prev => prev.map(u => u.id === editId ? { ...u, ...form } : u));
+        setSaveMsg('Updated!');
+        setTimeout(() => { setSaveMsg(''); setShowForm(false); }, 1200);
+      }
     } else {
-      const res = await adminApi.superAdmin.createUser(form);
-      error = res.error;
-      if (!error && res.data) setUsers(prev => [res.data, ...prev]);
+      try {
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        const response = await fetch(`${supabaseUrl}/functions/v1/create-admin-user`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabaseAnonKey}`,
+            'Apikey': supabaseAnonKey,
+          },
+          body: JSON.stringify(form),
+        });
+        const result = await response.json();
+        setIsSaving(false);
+        if (!response.ok || result.error) {
+          setSaveMsg('Failed to create user: ' + (result.error || 'Unknown error'));
+        } else {
+          setUsers(prev => [result.user, ...prev]);
+          setShowForm(false);
+          setCredentials({ email: result.user.email, password: result.password, full_name: result.user.full_name });
+        }
+      } catch (err: any) {
+        setIsSaving(false);
+        setSaveMsg('Network error: ' + err.message);
+      }
     }
+  }
 
-    setIsSaving(false);
-    if (error) {
-      setSaveMsg('Failed to save. ' + (error as any)?.message || '');
-    } else {
-      setSaveMsg('Saved!');
-      setShowForm(false);
-    }
-    setTimeout(() => setSaveMsg(''), 3000);
+  async function copyToClipboard(text: string, field: string) {
+    await navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 2000);
   }
 
   const filtered = users.filter(u => {
@@ -144,12 +188,54 @@ export default function SuperAdminUsers() {
         </select>
       </div>
 
+      {credentials && (
+        <div className="bg-neutral-900 border border-green-800 rounded-sm p-5">
+          <div className="flex items-start justify-between mb-3">
+            <div>
+              <p className="text-green-400 text-sm font-semibold">User created successfully</p>
+              <p className="text-neutral-500 text-xs mt-0.5">Share these credentials with {credentials.full_name}. This password will not be shown again.</p>
+            </div>
+            <button onClick={() => setCredentials(null)} className="text-neutral-600 hover:text-neutral-400">
+              <X size={16} />
+            </button>
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between bg-neutral-800 rounded-sm px-3 py-2.5">
+              <div>
+                <p className="text-[10px] text-neutral-500 uppercase tracking-wider mb-0.5">Email</p>
+                <p className="text-sm text-white font-mono">{credentials.email}</p>
+              </div>
+              <button onClick={() => copyToClipboard(credentials.email, 'email')} className="text-neutral-500 hover:text-white transition-colors ml-3">
+                {copiedField === 'email' ? <Check size={14} className="text-green-400" /> : <Copy size={14} />}
+              </button>
+            </div>
+            <div className="flex items-center justify-between bg-neutral-800 rounded-sm px-3 py-2.5">
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] text-neutral-500 uppercase tracking-wider mb-0.5">Password</p>
+                <p className="text-sm text-white font-mono">{showPassword ? credentials.password : '•'.repeat(credentials.password.length)}</p>
+              </div>
+              <div className="flex items-center gap-2 ml-3">
+                <button onClick={() => setShowPassword(v => !v)} className="text-neutral-500 hover:text-white transition-colors">
+                  {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+                </button>
+                <button onClick={() => copyToClipboard(credentials.password, 'password')} className="text-neutral-500 hover:text-white transition-colors">
+                  {copiedField === 'password' ? <Check size={14} className="text-green-400" /> : <Copy size={14} />}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowForm(false)} />
           <div className="relative bg-neutral-900 border border-neutral-800 rounded-sm w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl animate-fade-up">
             <div className="flex items-center justify-between p-5 border-b border-neutral-800">
-              <h2 className="font-display font-bold text-white">{editId ? 'Edit User' : 'Add User'}</h2>
+              <div>
+                <h2 className="font-display font-bold text-white">{editId ? 'Edit User' : 'Add User'}</h2>
+                {!editId && <p className="text-xs text-neutral-500 mt-0.5">A secure password will be generated automatically.</p>}
+              </div>
               <button onClick={() => setShowForm(false)} className="text-neutral-500 hover:text-neutral-300">
                 <X size={18} />
               </button>
@@ -174,7 +260,8 @@ export default function SuperAdminUsers() {
                     value={form.email}
                     onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                     required
-                    className="w-full bg-neutral-800 border border-neutral-700 text-sm px-3 py-2.5 rounded-sm focus:outline-none focus:border-brand-red text-white"
+                    disabled={!!editId}
+                    className="w-full bg-neutral-800 border border-neutral-700 text-sm px-3 py-2.5 rounded-sm focus:outline-none focus:border-brand-red text-white disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 </div>
                 <div>
@@ -239,7 +326,7 @@ export default function SuperAdminUsers() {
               </div>
 
               {saveMsg && (
-                <p className={`text-xs font-medium ${saveMsg.includes('Failed') ? 'text-red-400' : 'text-green-400'}`}>{saveMsg}</p>
+                <p className={`text-xs font-medium ${saveMsg.includes('Failed') || saveMsg.includes('error') ? 'text-red-400' : 'text-green-400'}`}>{saveMsg}</p>
               )}
 
               <div className="flex gap-3 pt-1">
@@ -248,7 +335,7 @@ export default function SuperAdminUsers() {
                 </button>
                 <button type="submit" disabled={isSaving} className="flex-1 flex items-center justify-center gap-2 py-2.5 text-sm bg-brand-red text-white rounded-sm hover:bg-brand-red-dark transition-colors disabled:opacity-50">
                   {isSaving ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Save size={13} />}
-                  {editId ? 'Update' : 'Create'}
+                  {editId ? 'Update' : 'Create & Generate Password'}
                 </button>
               </div>
             </form>
@@ -278,6 +365,9 @@ export default function SuperAdminUsers() {
                     </span>
                     {!user.is_active && (
                       <span className="text-[10px] text-neutral-600 uppercase">inactive</span>
+                    )}
+                    {user.auth_id && (
+                      <span className="text-[10px] text-green-600 uppercase">auth active</span>
                     )}
                   </div>
                   <p className="text-xs text-neutral-500">{user.email}</p>
