@@ -80,7 +80,7 @@ export const publicApi = {
     getAll: () =>
       supabase
         .from('articles')
-        .select('id, title, subtitle, excerpt, category_name, author, publish_date, read_time, featured_image, featured_image_alt, status, featured, trending, view_count, views, tags')
+        .select('id, title, subtitle, excerpt, category_name, author, publish_date, read_time, featured_image, featured_image_alt, status, featured, trending, views, tags')
         .eq('status', 'published')
         .order('publish_date', { ascending: false }),
 
@@ -94,7 +94,7 @@ export const publicApi = {
     getFeatured: () =>
       supabase
         .from('articles')
-        .select('id, title, subtitle, excerpt, category_name, author, publish_date, read_time, featured_image, views, view_count, trending')
+        .select('id, title, subtitle, excerpt, category_name, author, publish_date, read_time, featured_image, views, trending')
         .eq('status', 'published')
         .eq('featured', true)
         .order('publish_date', { ascending: false })
@@ -103,7 +103,7 @@ export const publicApi = {
     getTrending: () =>
       supabase
         .from('articles')
-        .select('id, title, subtitle, excerpt, category_name, author, publish_date, read_time, featured_image, views, view_count')
+        .select('id, title, subtitle, excerpt, category_name, author, publish_date, read_time, featured_image, views')
         .eq('status', 'published')
         .eq('trending', true)
         .order('publish_date', { ascending: false })
@@ -112,7 +112,7 @@ export const publicApi = {
     getMainArticles: () =>
       supabase
         .from('main_articles')
-        .select('position, article_id, articles(id, title, subtitle, excerpt, category_name, author, publish_date, read_time, featured_image, views, view_count, content)')
+        .select('position, article_id, articles(id, title, subtitle, excerpt, category_name, author, publish_date, read_time, featured_image, views, content)')
         .limit(2),
 
     getEditorsPick: () =>
