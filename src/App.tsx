@@ -20,7 +20,6 @@ const NotFoundPage = lazy(() => import('./pages/public/NotFoundPage'));
 const AdminLoginPage = lazy(() => import('./pages/admin/AdminLoginPage'));
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
 
-const SuperAdminLoginPage = lazy(() => import('./pages/super-admin/SuperAdminLoginPage'));
 const SuperAdminDashboard = lazy(() => import('./pages/super-admin/SuperAdminDashboard'));
 
 function App() {
@@ -47,7 +46,7 @@ function App() {
                 <Route path="/admin/login" element={<AdminLoginPage />} />
                 <Route path="/admin/*" element={<AdminDashboard />} />
 
-                <Route path="/super-admin/login" element={<SuperAdminLoginPage />} />
+                <Route path="/super-admin/login" element={<Navigate to="/super-admin/dashboard" replace />} />
                 <Route path="/super-admin/*" element={<SuperAdminDashboard />} />
 
                 <Route path="/404" element={<NotFoundPage />} />

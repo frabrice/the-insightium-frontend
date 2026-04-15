@@ -1,6 +1,5 @@
-import React, { useEffect } from 'react';
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { AdminAuthProvider, useAdminAuth } from '../../contexts/AdminAuthContext';
+import React from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import SuperAdminLayout from '../../components/super-admin/SuperAdminLayout';
 import SuperAdminOverview from '../../components/super-admin/SuperAdminOverview';
 import EditorialSpeak from '../../components/super-admin/EditorialSpeak';
@@ -10,23 +9,8 @@ import SuperAdminComments from '../../components/super-admin/SuperAdminComments'
 import SuperAdminAnalytics from '../../components/super-admin/SuperAdminAnalytics';
 import SuperAdminNewsletter from '../../components/super-admin/SuperAdminNewsletter';
 import SuperAdminSettings from '../../components/super-admin/SuperAdminSettings';
-import LoadingScreen from '../../components/shared/LoadingScreen';
 
-function SuperAdminRoutes() {
-  const { adminUser, isLoading } = useAdminAuth();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!isLoading && !adminUser) {
-      navigate('/super-admin/login');
-    } else if (!isLoading && adminUser && adminUser.role !== 'super_admin') {
-      navigate('/admin/dashboard');
-    }
-  }, [adminUser, isLoading]);
-
-  if (isLoading) return <LoadingScreen />;
-  if (!adminUser || adminUser.role !== 'super_admin') return null;
-
+export default function SuperAdminDashboard() {
   return (
     <SuperAdminLayout>
       <Routes>
@@ -41,13 +25,5 @@ function SuperAdminRoutes() {
         <Route path="*" element={<Navigate to="dashboard" replace />} />
       </Routes>
     </SuperAdminLayout>
-  );
-}
-
-export default function SuperAdminDashboard() {
-  return (
-    <AdminAuthProvider>
-      <SuperAdminRoutes />
-    </AdminAuthProvider>
   );
 }

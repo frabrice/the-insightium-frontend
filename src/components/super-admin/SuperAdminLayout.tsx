@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Users, FileText, BookOpen, BarChart2,
-  MessageSquare, Mail, Settings, LogOut, Menu, X, ChevronRight, Shield
+  MessageSquare, Mail, Settings, LogOut, Menu, ChevronRight, Shield
 } from 'lucide-react';
-import { useAdminAuth } from '../../contexts/AdminAuthContext';
-
 const NAV_ITEMS = [
   { icon: LayoutDashboard, label: 'Overview', href: '/super-admin/dashboard' },
   { icon: BookOpen, label: 'Editorial Speak', href: '/super-admin/editorial' },
@@ -18,15 +16,8 @@ const NAV_ITEMS = [
 ];
 
 export default function SuperAdminLayout({ children }: { children: React.ReactNode }) {
-  const { adminUser, signOut } = useAdminAuth();
   const location = useLocation();
-  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  async function handleSignOut() {
-    await signOut();
-    navigate('/super-admin/login');
-  }
 
   const Sidebar = () => (
     <aside className="w-56 flex-shrink-0 bg-brand-black border-r border-neutral-800 flex flex-col h-full">
@@ -44,11 +35,11 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
       <div className="p-4 border-b border-neutral-800">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-full bg-brand-red flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-            {(adminUser?.full_name || adminUser?.email || 'S')[0].toUpperCase()}
+            S
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-medium text-white truncate">{adminUser?.full_name || 'Super Admin'}</p>
-            <p className="text-[10px] text-neutral-500">{adminUser?.email}</p>
+            <p className="text-sm font-medium text-white truncate">Super Admin</p>
+            <p className="text-[10px] text-neutral-500">admin@theinsightium.com</p>
           </div>
         </div>
       </div>
@@ -83,13 +74,13 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
         >
           Switch to Admin
         </Link>
-        <button
-          onClick={handleSignOut}
+        <Link
+          to="/"
           className="flex items-center gap-2.5 px-2.5 py-2 rounded text-sm text-neutral-500 hover:text-brand-red hover:bg-red-950 transition-colors w-full"
         >
           <LogOut size={15} />
-          Sign Out
-        </button>
+          Exit to Site
+        </Link>
       </div>
     </aside>
   );
