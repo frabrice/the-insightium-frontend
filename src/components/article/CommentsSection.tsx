@@ -47,11 +47,12 @@ export default function CommentsSection({ articleId }: CommentsSectionProps) {
 
     const commentData = {
       article_id: articleId,
-      author_name: user ? (profile?.display_name || user.email || 'Reader') : name,
-      author_email: user ? user.email! : email,
+      author_name: profile?.display_name || user!.email || 'Reader',
+      author_email: user!.email!,
       content: content.trim(),
+      status: 'approved',
+      reader_auth_id: user!.id,
       ...(replyTo ? { parent_comment_id: replyTo } : {}),
-      ...(user ? { reader_auth_id: user.id } : {}),
     };
 
     const { error } = await publicApi.comments.create(commentData);
@@ -59,13 +60,9 @@ export default function CommentsSection({ articleId }: CommentsSectionProps) {
 
     if (!error) {
       setContent('');
-      setName('');
-      setEmail('');
       setReplyTo(null);
       setSubmitted(true);
-      if (user) {
-        await loadComments();
-      }
+      await loadComments();
     }
   }
 

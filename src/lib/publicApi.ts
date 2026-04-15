@@ -240,6 +240,7 @@ export const publicApi = {
       content: string;
       parent_comment_id?: string;
       reader_auth_id?: string;
+      status?: string;
     }) => supabase.from('article_comments').insert(comment).select().single(),
   },
 
