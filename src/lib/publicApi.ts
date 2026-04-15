@@ -132,10 +132,20 @@ export const publicApi = {
     search: (query: string) =>
       supabase
         .from('articles')
-        .select('id, title, excerpt, category_name, author, publish_date, featured_image')
+        .select('id, title, excerpt, category_name, author, publish_date, featured_image, read_time')
         .eq('status', 'published')
         .or(`title.ilike.%${query}%,excerpt.ilike.%${query}%,category_name.ilike.%${query}%`)
-        .limit(20),
+        .order('publish_date', { ascending: false })
+        .limit(30),
+
+    getByCategory: (category: string) =>
+      supabase
+        .from('articles')
+        .select('id, title, excerpt, category_name, author, publish_date, featured_image, read_time')
+        .eq('status', 'published')
+        .eq('category_name', category)
+        .order('publish_date', { ascending: false })
+        .limit(30),
 
     getRelated: (categoryName: string, excludeId: string) =>
       supabase

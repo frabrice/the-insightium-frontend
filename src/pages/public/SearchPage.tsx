@@ -1,34 +1,56 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Search, Clock } from 'lucide-react';
+import { Search, Clock, Tag } from 'lucide-react';
 import { publicApi } from '../../lib/publicApi';
 import type { Article } from '../../lib/publicApi';
 
 export default function SearchPage() {
   const [searchParams] = useSearchParams();
   const query = searchParams.get('q') || '';
+  const category = searchParams.get('category') || '';
   const [results, setResults] = useState<Article[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
+  const isCategory = Boolean(category && !query);
+
   useEffect(() => {
-    if (!query) return;
+    const term = query || category;
+    if (!term) return;
     setIsLoading(true);
-    publicApi.articles.search(query).then(({ data }) => {
-      setResults(data as Article[] || []);
+    const request = isCategory
+      ? publicApi.articles.getByCategory(category)
+      : publicApi.articles.search(query);
+    request.then(({ data }) => {
+      setResults((data as Article[]) || []);
       setIsLoading(false);
     });
-  }, [query]);
+  }, [query, category]);
+
+  const displayTitle = category
+    ? category
+    : query
+    ? `Results for "${query}"`
+    : 'Search Articles';
 
   return (
     <div className="min-h-screen bg-brand-cream dark:bg-brand-black page-enter">
       <div className="bg-white dark:bg-neutral-900 border-b border-neutral-200 dark:border-neutral-800 py-10">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-label text-brand-red text-xs mb-2">Search Results</p>
+          {isCategory ? (
+            <div className="flex items-center gap-2 mb-2">
+              <Tag size={12} className="text-brand-red" />
+              <p className="text-label text-brand-red text-xs">Category</p>
+            </div>
+          ) : (
+            <p className="text-label text-brand-red text-xs mb-2">Search Results</p>
+          )}
           <h1 className="font-display font-bold text-brand-black dark:text-white text-3xl">
-            {query ? <>Results for &ldquo;{query}&rdquo;</> : 'Search Articles'}
+            {displayTitle}
           </h1>
-          {!isLoading && query && (
-            <p className="text-neutral-500 text-sm mt-2">{results.length} article{results.length !== 1 ? 's' : ''} found</p>
+          {!isLoading && (query || category) && (
+            <p className="text-neutral-500 text-sm mt-2">
+              {results.length} article{results.length !== 1 ? 's' : ''} found
+            </p>
           )}
         </div>
       </div>
@@ -47,11 +69,21 @@ export default function SearchPage() {
               </div>
             ))}
           </div>
-        ) : results.length === 0 && query ? (
+        ) : results.length === 0 && (query || category) ? (
           <div className="text-center py-20">
             <Search size={40} className="mx-auto mb-4 text-neutral-300 dark:text-neutral-600" />
             <h3 className="font-display font-bold text-xl text-brand-black dark:text-white mb-2">No results found</h3>
-            <p className="text-neutral-500 text-sm">Try different keywords or browse our sections.</p>
+            <p className="text-neutral-500 text-sm">
+              {isCategory
+                ? `No articles found in the "${category}" category yet.`
+                : 'Try different keywords or browse our sections.'}
+            </p>
+          </div>
+        ) : !query && !category ? (
+          <div className="text-center py-20">
+            <Search size={40} className="mx-auto mb-4 text-neutral-300 dark:text-neutral-600" />
+            <h3 className="font-display font-bold text-xl text-brand-black dark:text-white mb-2">Search our articles</h3>
+            <p className="text-neutral-500 text-sm">Use the search bar above or click a category in the ticker.</p>
           </div>
         ) : (
           <div className="space-y-4">
