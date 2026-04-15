@@ -19,10 +19,14 @@ export const adminAuth = {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) return { user: null, adminUser: null, error: error.message };
 
+    if (data.session) {
+      await supabase.auth.setSession({ access_token: data.session.access_token, refresh_token: data.session.refresh_token });
+    }
+
     const { data: adminUser, error: adminError } = await supabase
       .from('users')
       .select('*')
-      .eq('email', email)
+      .eq('auth_id', data.user.id)
       .eq('is_active', true)
       .maybeSingle();
 
@@ -50,7 +54,7 @@ export const adminAuth = {
     const { data } = await supabase
       .from('users')
       .select('*')
-      .eq('email', user.email)
+      .eq('auth_id', user.id)
       .eq('is_active', true)
       .maybeSingle();
 
